@@ -7,7 +7,7 @@ import CoinCard from "../coinComponents/CoinCard";
 function Home() {
 
   const [coins, setCoins] = useState([]);
-  const [iLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const filteredCoins = coins.filter((coin: Coin) =>
     coin.name.toLowerCase().includes(search.toLowerCase())
@@ -24,16 +24,20 @@ function Home() {
 
   const fetchCoin = async () => {
     try {
+        if (coins.length === 0) {
+            setIsLoading(true);
+        }
       const response = await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1");
       const data = await response.json();
       setCoins(data);
+      setIsLoading(false);
     }
     catch (error) {
       console.error("Error fetching coin data:", error);
     }
   }
 
-     if (!coins) return (
+     if (isLoading) return (
         <div className="min-h-screen flex items-center justify-center">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
         </div>

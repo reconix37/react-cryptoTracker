@@ -68,7 +68,7 @@ export default function CoinPages() {
                         <CoinChart coinId={id} />
                         <div className=" mt-8">
                             <h3 className="text-2xl font-semibold mb-4">About {coinDetails.name}</h3>
-                            {coinDetails.description.en ? <p className="text-gray-700 leading-relaxed">{coinDetails.description.en}</p> : <p className="text-gray-700 leading-relaxed" >No description available.</p>}
+                            {coinDetails.description.en ? <p className="text-gray-700 leading-relaxed" dangerouslySetInnerHTML={{ __html: coinDetails.description.en }}></p> : <p className="text-gray-700 leading-relaxed" >No description available.</p>}
                         </div>
                     </div>
                 )}
