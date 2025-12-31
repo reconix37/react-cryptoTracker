@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -10,6 +9,8 @@ import {
     Legend,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import { Button } from "@/components/ui/button";
+import { useCoinCharts } from "@/hooks/useCoinsChart";
 
 ChartJS.register(
     CategoryScale,
@@ -27,30 +28,15 @@ interface CoinChartProps {
 
 export default function CoinChart({ coinId }: CoinChartProps) {
 
-    const [historicData, setHistoricData] = useState<number[][]>([]);
-    const [loading, setLoading] = useState(true);
-    const [timeFrame, setTimeFrame] = useState("7");
+    const { historicData, loading, timeFrame, setTimeFrame } = useCoinCharts(coinId);
 
-    const fetchHistoricData = async (id: string) => {
-        try {
-            if (historicData.length === 0) {
-                setLoading(true);
-            }
-            const response = await fetch(`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${timeFrame}`);
-            const data = await response.json();
-            setHistoricData(data.prices);
-            setLoading(false);
-        } catch (error) {
-            console.error("Error fetching historic data:", error);
-            setLoading(false);
-        }
-    }
+    const timeframeButtonClass = (value: string) =>
+    `px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200
+    ${timeFrame === value
+        ? 'bg-blue-600 text-white shadow-md scale-105'
+        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:scale-105'
+    }`;
 
-    useEffect(() => {
-        if (coinId) {
-            fetchHistoricData(coinId);
-        }
-    }, [coinId, timeFrame]);
 
     if (loading || !historicData) return (
         <div className="flex items-center justify-center h-64">
@@ -66,6 +52,9 @@ export default function CoinChart({ coinId }: CoinChartProps) {
     const chartData = {
         labels: historicData.map((dataPoint) => {
             const date = new Date(dataPoint[0]);
+            if (timeFrame === "1") {
+                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
             return date.toLocaleDateString([], { day: '2-digit', month: '2-digit' });
         }),
         datasets: [
@@ -121,7 +110,13 @@ export default function CoinChart({ coinId }: CoinChartProps) {
     return (
         <div className="mt-8 p-6 border rounded-2xl bg-white shadow-sm">
             <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold">Price Chart (7 Days)</h3>
+                <h3 className="text-xl font-bold">Price Chart {timeFrame} Days</h3>
+                <div className="flex gap-2">
+                    <Button variant="default" className={timeframeButtonClass("1")} onClick={() => setTimeFrame("1")}>1D</Button>
+                    <Button variant="default" className={timeframeButtonClass("7")} onClick={() => setTimeFrame("7")}>7D</Button>
+                    <Button variant="default" className={timeframeButtonClass("30")} onClick={() => setTimeFrame("30")}>30D</Button>
+                    <Button variant="default" className={timeframeButtonClass("90")} onClick={() => setTimeFrame("90")}>90D</Button>
+                </div>
                 <span className={`text-sm font-medium ${isPriceUp ? 'text-green-500' : 'text-red-500'}`}>
                     {isPriceUp ? '▲ Upward' : '▼ Downward'}
                 </span>
