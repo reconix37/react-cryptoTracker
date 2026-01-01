@@ -121,7 +121,7 @@ export default function CoinChart({ coinId }: CoinChartProps) {
                     {isPriceUp ? '▲ Upward' : '▼ Downward'}
                 </span>
             </div>
-            <div className="h-[350px] w-full">
+            <div className="h-87.5 w-full">
                 <Line options={options} data={chartData} />
             </div>
         </div>
