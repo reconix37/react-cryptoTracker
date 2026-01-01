@@ -68,9 +68,9 @@ export default function CoinPages() {
                             <div className="flex-1 text-center md:text-left">
                                 <div className="flex items-center justify-center md:justify-start gap-4">
                                     <h1 className="text-4xl font-bold mb-2">{coinDetails.name} <span className="text-gray-400 uppercase">{coinDetails.symbol}</span></h1>
-                                    <Button onClick={toggleWatchlist} variant="default" className={`transition-all duration-200 ${isInWatchlist ? "border-yellow-500 text-yellow-600 hover:scale-105 " : "bg-yellow-500 hover:scale-105 text-white border-none"}`}>
+                                    <button type="button" onClick={toggleWatchlist} className={`transition-all duration-200 ${isInWatchlist ? "border-yellow-500 text-yellow-600 hover:scale-105 " : "bg-yellow-500 hover:scale-105 text-white border-none"}`}>
                                         {isInWatchlist ? "In Watchlist ★" : "Add to Watchlist ☆"}
-                                    </Button>
+                                    </button>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4 mt-6">
                                     <div className="bg-gray-50 p-4 rounded-xl">
