@@ -4,11 +4,26 @@ import type { Coin } from "@/types/Coin";
 import type { PortfolioAsset } from "@/types/PortfolioAsset";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Wallet, TrendingUp, CircleDollarSign } from "lucide-react";
+import { Wallet, CircleDollarSign } from "lucide-react";
+import AddAssetDialog from "@/components/ui/AddAssetDialog";
 
 export default function Profile() {
   const [assets, setAssets] = useLocalStorage<PortfolioAsset[]>("portfolio_assets", []);
   const [marketData, setMarketData] = useState<Coin[]>([]);
+  const [allCoins, setAllCoins] = useState<Coin[]>([]);
+
+  useEffect(() => {
+    const fetchAllCoins = async () => {
+      try {
+        const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1');
+        const data = await response.json();
+        setAllCoins(data);
+      } catch (e) { console.error(e) }
+    };
+    fetchAllCoins();
+  }, []);
+
+
 
   const fetchMarketData = async () => {
     if (assets.length === 0) return;
@@ -33,6 +48,25 @@ export default function Profile() {
     fetchMarketData();
   }, [assets]);
 
+  const handleAddAsset = (newAsset: PortfolioAsset) => {
+    setAssets((prev) => {
+      const isExist = prev.some(a => a.id === newAsset.id);
+
+      if (isExist) {
+        return prev.map(a =>
+          a.id === newAsset.id
+            ? { ...a, amount: a.amount + newAsset.amount }
+            : a
+        );
+      }
+      return [...prev, newAsset];
+    });
+  };
+
+  const handleDelete = (assetId: string) => {
+    setAssets(prev => prev.filter(a => a.id !== assetId))
+  }
+
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-8 bg-gray-50 min-h-screen">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -40,10 +74,7 @@ export default function Profile() {
           <h1 className="text-3xl font-bold tracking-tight">My Portfolio</h1>
           <p className="text-slate-500">Track your crypto assets and performance.</p>
         </div>
-        <Button 
-          onClick={() => setAssets([...assets, { id: 'solana', amount: 10 }])} className="bg-blue-600 hover:bg-blue-700 shadow-lg transition-all">
-          <Plus className="mr-2 h-4 w-4" /> Add Asset
-        </Button>
+        <AddAssetDialog onAdd={handleAddAsset} marketData={allCoins} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -54,9 +85,6 @@ export default function Profile() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-            <p className="text-xs text-green-500 flex items-center mt-1">
-              <TrendingUp className="mr-1 h-3 w-3" /> Live prices from CoinGecko
-            </p>
           </CardContent>
         </Card>
       </div>
@@ -85,15 +113,18 @@ export default function Profile() {
                       <p className="text-sm text-slate-500">{asset.amount} units</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-slate-900">
-                      {coin ? `$${value.toLocaleString()}` : <span className="animate-pulse text-slate-300">...</span>}
-                    </p>
-                    {coin && (
-                      <p className="text-xs text-slate-400">
-                        ${coin.current_price.toLocaleString()} / unit
+                  <div className="flex gap-4">
+                    <div className="text-right ">
+                      <p className="font-bold text-slate-900">
+                        {coin ? `$${value.toLocaleString()}` : <span className="animate-pulse text-slate-300">...</span>}
                       </p>
-                    )}
+                      {coin && (
+                        <p className="text-xs text-slate-400">
+                          ${coin.current_price.toLocaleString()} / unit
+                        </p>
+                      )}
+                    </div>
+                    <Button onClick={() => handleDelete(asset.id)}>Delete</Button>
                   </div>
                 </div>
               );
