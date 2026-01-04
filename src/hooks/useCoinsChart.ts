@@ -9,7 +9,7 @@ export function useCoinCharts(coinId: string | undefined) {
         if (!coinId) return;
 
         try {
-                setLoading(true);
+            setLoading(true);
             const response = await fetch(`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${timeFrame}`);
             const data = await response.json();
             setHistoricData(data.prices);
@@ -21,10 +21,10 @@ export function useCoinCharts(coinId: string | undefined) {
     }
 
     useEffect(() => {
-                if (coinId) {
-                    fetchHistoricData(coinId);
-                }
-            }, [coinId, timeFrame]);
+        if (coinId) {
+            fetchHistoricData(coinId);
+        }
+    }, [coinId, timeFrame]);
 
     return { historicData, loading, timeFrame, setTimeFrame };
 }

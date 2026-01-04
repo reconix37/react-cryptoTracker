@@ -1,7 +1,7 @@
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Button } from "./button"
+import { Button } from "../ui/button"
 import { useState } from "react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ChevronsUpDown } from "lucide-react"
@@ -49,9 +49,6 @@ export default function AddAssetDialog({ onAdd, marketData }: AddAssetDialogProp
                 <div className="grid gap-4">
                     <div className="grid gap-3">
                         <Label>Coin Name: </Label>
-                        <Input value={newCoinId} onChange={(e) => {
-                            setNewCoinId((e.target.value).toLowerCase()); setEmptyField(false);
-                        }} />
                         <Popover open={openPopover} onOpenChange={setOpenPopover}>
                             <PopoverTrigger asChild>
                                 <Button variant="default" className="w-full justify-between">

@@ -1,55 +1,18 @@
-import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import type { CoinDetails } from "../types/Coin";
+import { Link } from "react-router-dom"
 import { Button } from "@/components/ui/button";
-import CoinChart from "@/coinComponents/CoinChart";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
+import CoinChart from "@/components/coins/CoinChart";
+import { useCoinPages } from "@/hooks/useCoinPages";
+
 
 export default function CoinPages() {
-    const { id } = useParams();
-    const [coinDetails, setCoinDetails] = useState<CoinDetails | null>(null);
-    const [watchlist, setWatchlist] = useLocalStorage<string[]>("watchlist", []);
+    const {
+        coinDetails,
+        id,
+        isInWatchlist,
+        toggleWatchlist,
+        formatCompactNumber
 
-    const fetchCoinDetails = async (coinId: string | undefined) => {
-        try {
-            const response = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}`);
-            const data = await response.json();
-            setCoinDetails(data);
-        }
-        catch (error) {
-            console.error("Error fetching coin details:", error);
-        }
-    }
-
-    const isInWatchlist = id ? watchlist.includes(id) : false;
-
-    const toggleWatchlist = () => {
-        if (!id) return;
-
-        if (isInWatchlist) {
-            setWatchlist(watchlist.filter(coin => coin !== id));
-        } else {
-            setWatchlist([...watchlist, id]);
-        }
-    }
-
-    const formatCompactNumber = (number: number) => {
-        return Intl.NumberFormat("en-US", {
-            notation: "compact",
-            maximumFractionDigits: 2,
-        }).format(number);
-    };
-
-    useEffect(() => {
-        fetchCoinDetails(id);
-
-        const interval = setInterval(() => {
-            fetchCoinDetails(id);
-        }, 60000);
-
-        return () => clearInterval(interval);
-
-    }, [id]);
+    } = useCoinPages()
 
     if (!coinDetails) return (
         <div className="min-h-screen flex items-center justify-center">
@@ -85,7 +48,7 @@ export default function CoinPages() {
                             </div>
                         </div>
                         <CoinChart coinId={id} />
-                        <div className=" mt-8">
+                        <div className=" mt-8 [&_a]:text-blue-500 [&_a]:hover:underline">
                             <h3 className="text-2xl font-semibold mb-4">About {coinDetails.name}</h3>
                             {coinDetails.description.en ? <p className="text-gray-700 leading-relaxed" dangerouslySetInnerHTML={{ __html: coinDetails.description.en }}></p> : <p className="text-gray-700 leading-relaxed" >No description available.</p>}
                         </div>

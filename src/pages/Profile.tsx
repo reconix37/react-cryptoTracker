@@ -1,71 +1,22 @@
 import { Button } from "@/components/ui/button";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
-import type { Coin } from "@/types/Coin";
-import type { PortfolioAsset } from "@/types/PortfolioAsset";
-import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wallet, CircleDollarSign } from "lucide-react";
-import AddAssetDialog from "@/components/ui/AddAssetDialog";
+import AddAssetDialog from "@/components/profile/AddAssetDialog";
+import PortfolioChart from "@/components/profile/PortfolioChart";
+import { usePortfolio } from "@/hooks/usePortfolio";
+import { motion, AnimatePresence } from "framer-motion";
+import { AnimatedNumber } from "@/components/ui/AnimatedNumbers";
 
 export default function Profile() {
-  const [assets, setAssets] = useLocalStorage<PortfolioAsset[]>("portfolio_assets", []);
-  const [marketData, setMarketData] = useState<Coin[]>([]);
-  const [allCoins, setAllCoins] = useState<Coin[]>([]);
-
-  useEffect(() => {
-    const fetchAllCoins = async () => {
-      try {
-        const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1');
-        const data = await response.json();
-        setAllCoins(data);
-      } catch (e) { console.error(e) }
-    };
-    fetchAllCoins();
-  }, []);
-
-
-
-  const fetchMarketData = async () => {
-    if (assets.length === 0) return;
-    const ids = assets.map((a) => a.id).join(",");
-    try {
-      const response = await fetch(
-        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}`
-      );
-      const data = await response.json();
-      setMarketData(data);
-    } catch (error) {
-      console.error("Error fetching coin data:", error);
-    }
-  };
-
-  const totalBalance = assets.reduce((acc, asset) => {
-    const coin = marketData.find((c) => c.id === asset.id);
-    return acc + (coin ? coin.current_price * asset.amount : 0);
-  }, 0);
-
-  useEffect(() => {
-    fetchMarketData();
-  }, [assets]);
-
-  const handleAddAsset = (newAsset: PortfolioAsset) => {
-    setAssets((prev) => {
-      const isExist = prev.some(a => a.id === newAsset.id);
-
-      if (isExist) {
-        return prev.map(a =>
-          a.id === newAsset.id
-            ? { ...a, amount: a.amount + newAsset.amount }
-            : a
-        );
-      }
-      return [...prev, newAsset];
-    });
-  };
-
-  const handleDelete = (assetId: string) => {
-    setAssets(prev => prev.filter(a => a.id !== assetId))
-  }
+  const {
+    assets,
+    allCoins,
+    chartData,
+    totalBalance,
+    marketData,
+    handleAddAsset,
+    handleDelete
+  } = usePortfolio();
 
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-8 bg-gray-50 min-h-screen">
@@ -78,15 +29,30 @@ export default function Profile() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="bg-white shadow-sm border-none">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-slate-500">Total Balance</CardTitle>
-            <Wallet className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-          </CardContent>
-        </Card>
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Card className="bg-white shadow-sm border-none">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-sm font-medium text-slate-500">Total Balance</CardTitle>
+              <Wallet className="h-4 w-4 text-blue-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                $<AnimatedNumber value={totalBalance} />
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div className="md:col-span-2"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}>
+          <PortfolioChart data={chartData} />
+        </motion.div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
@@ -100,35 +66,52 @@ export default function Profile() {
               <p>Your portfolio is empty. Click "Add Asset" to start.</p>
             </div>
           ) : (
-            assets.map((asset) => {
-              const coin = marketData.find((c) => c.id === asset.id);
-              const value = coin ? coin.current_price * asset.amount : 0;
+            <AnimatePresence mode="popLayout">
+              {assets.map((asset) => {
+                const coin = marketData.find((c) => c.id === asset.id);
+                const value = coin ? coin.current_price * asset.amount : 0;
 
-              return (
-                <div key={asset.id} className="p-4 md:p-6 flex items-center justify-between hover:bg-slate-50 transition-colors">
-                  <div className="flex items-center gap-4">
-                    {coin?.image && <img src={coin.image} alt="" className="w-10 h-10 rounded-full" />}
-                    <div>
-                      <p className="font-bold text-slate-900 uppercase">{asset.id}</p>
-                      <p className="text-sm text-slate-500">{asset.amount} units</p>
+                return (
+                  <motion.div
+                    key={asset.id}
+                    layout
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, x: -20 }}
+                    transition={{ duration: 0.2 }}
+                    className="p-4 md:p-6 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-4">
+                      {coin?.image && <img src={coin.image} alt="" className="w-10 h-10 rounded-full" />}
+                      <div>
+                        <p className="font-bold text-slate-900 uppercase">{asset.id}</p>
+                        <p className="text-sm text-slate-500">{asset.amount} units</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex gap-4">
-                    <div className="text-right ">
-                      <p className="font-bold text-slate-900">
-                        {coin ? `$${value.toLocaleString()}` : <span className="animate-pulse text-slate-300">...</span>}
-                      </p>
-                      {coin && (
-                        <p className="text-xs text-slate-400">
-                          ${coin.current_price.toLocaleString()} / unit
+
+                    <div className="flex gap-4">
+                      <div className="text-right">
+                        <p className="font-bold text-slate-900">
+                          {coin ? `$${value.toLocaleString()}` : "..."}
                         </p>
-                      )}
+                        {coin && (
+                          <p className="text-xs text-slate-400">
+                            ${coin.current_price.toLocaleString()} / unit
+                          </p>
+                        )}
+                      </div>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(asset.id)}
+                      >
+                        Delete
+                      </Button>
                     </div>
-                    <Button onClick={() => handleDelete(asset.id)}>Delete</Button>
-                  </div>
-                </div>
-              );
-            })
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
           )}
         </div>
       </div>

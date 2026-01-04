@@ -4,11 +4,13 @@ import Markets from "./pages/Markets";
 import CoinPages from './pages/CoinPages';
 import NavBar from './components/ui/NavBar';
 import Profile from './pages/Profile';
+import { Toaster } from 'sonner';
 
 function App() {
 
   return (
     <BrowserRouter>
+      <Toaster position="top-center" richColors closeButton />
       <NavBar />
       <Routes>
         <Route path="/" element={<Markets />} />

@@ -31,11 +31,11 @@ export default function CoinChart({ coinId }: CoinChartProps) {
     const { historicData, loading, timeFrame, setTimeFrame } = useCoinCharts(coinId);
 
     const timeframeButtonClass = (value: string) =>
-    `px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200
+        `px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200
     ${timeFrame === value
-        ? 'bg-blue-600 text-white shadow-md scale-105'
-        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:scale-105'
-    }`;
+            ? 'bg-blue-600 text-white shadow-md scale-105'
+            : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:scale-105'
+        }`;
 
 
     if (loading || !historicData) return (
@@ -44,7 +44,7 @@ export default function CoinChart({ coinId }: CoinChartProps) {
         </div>
     );
 
-    const isPriceUp = historicData.length > 0 && 
+    const isPriceUp = historicData.length > 0 &&
         historicData[historicData.length - 1][1] > historicData[0][1];
 
     const themeColor = isPriceUp ? 'rgb(34, 197, 94)' : 'rgb(239, 68, 68)';
