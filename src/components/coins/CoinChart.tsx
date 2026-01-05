@@ -7,9 +7,9 @@ import {
     Title,
     Tooltip,
     Legend,
+    Filler
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
-import { Button } from "@/components/ui/button";
 import { useCoinCharts } from "@/hooks/useCoinsChart";
 
 ChartJS.register(
@@ -19,7 +19,8 @@ ChartJS.register(
     LineElement,
     Title,
     Tooltip,
-    Legend
+    Legend,
+    Filler
 );
 
 interface CoinChartProps {
@@ -27,20 +28,17 @@ interface CoinChartProps {
 }
 
 export default function CoinChart({ coinId }: CoinChartProps) {
-
     const { historicData, loading, timeFrame, setTimeFrame } = useCoinCharts(coinId);
-
     const timeframeButtonClass = (value: string) =>
-        `px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200
+        `px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer
     ${timeFrame === value
             ? 'bg-blue-600 text-white shadow-md scale-105'
-            : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:scale-105'
+            : 'bg-secondary text-secondary-foreground hover:bg-accent hover:scale-105'
         }`;
 
-
     if (loading || !historicData) return (
-        <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="flex items-center justify-center h-64 bg-card rounded-2xl border border-border">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
         </div>
     );
 
@@ -61,7 +59,8 @@ export default function CoinChart({ coinId }: CoinChartProps) {
             {
                 data: historicData.map((dataPoint) => dataPoint[1]),
                 borderColor: themeColor,
-                backgroundColor: isPriceUp ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                // Используем чуть более выраженную заливку для темной темы
+                backgroundColor: isPriceUp ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
                 fill: true,
                 tension: 0.4,
                 pointRadius: 0,
@@ -75,19 +74,19 @@ export default function CoinChart({ coinId }: CoinChartProps) {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-            legend: {
-                display: false,
-            },
+            legend: { display: false },
             tooltip: {
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                titleColor: '#fff',
+                bodyColor: '#fff',
                 padding: 12,
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+                borderWidth: 1,
             }
         },
         scales: {
             x: {
-                grid: {
-                    display: false,
-                },
+                grid: { display: false },
                 ticks: {
                     maxRotation: 0,
                     autoSkip: true,
@@ -97,7 +96,7 @@ export default function CoinChart({ coinId }: CoinChartProps) {
             },
             y: {
                 grid: {
-                    color: 'rgba(0, 0, 0, 0.05)',
+                    color: 'rgba(148, 163, 184, 0.1)',
                 },
                 ticks: {
                     callback: (value: any) => `$${value.toLocaleString()}`,
@@ -108,21 +107,28 @@ export default function CoinChart({ coinId }: CoinChartProps) {
     };
 
     return (
-        <div className="mt-8 p-6 border rounded-2xl bg-white shadow-sm">
-            <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold">Price Chart {timeFrame} Days</h3>
-                <div className="flex gap-2">
-                    <Button variant="default" className={timeframeButtonClass("1")} onClick={() => setTimeFrame("1")}>1D</Button>
-                    <Button variant="default" className={timeframeButtonClass("7")} onClick={() => setTimeFrame("7")}>7D</Button>
-                    <Button variant="default" className={timeframeButtonClass("30")} onClick={() => setTimeFrame("30")}>30D</Button>
-                    <Button variant="default" className={timeframeButtonClass("90")} onClick={() => setTimeFrame("90")}>90D</Button>
+        <div className="mt-8 p-6 border border-border rounded-2xl bg-card text-card-foreground shadow-sm">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <div>
+                    <h3 className="text-xl font-bold">Price Chart</h3>
+                    <p className="text-sm text-muted-foreground">{timeFrame} Days Period</p>
                 </div>
-                <span className={`text-sm font-medium ${isPriceUp ? 'text-green-500' : 'text-red-500'}`}>
+
+                <div className="flex gap-2 bg-secondary/30 p-1 rounded-xl border border-border">
+                    <button className={timeframeButtonClass("1")} onClick={() => setTimeFrame("1")}>1D</button>
+                    <button className={timeframeButtonClass("7")} onClick={() => setTimeFrame("7")}>7D</button>
+                    <button className={timeframeButtonClass("30")} onClick={() => setTimeFrame("30")}>30D</button>
+                    <button className={timeframeButtonClass("90")} onClick={() => setTimeFrame("90")}>90D</button>
+                </div>
+
+                <span className={`text-sm font-bold px-3 py-1 rounded-full ${isPriceUp ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
+                    }`}>
                     {isPriceUp ? '▲ Upward' : '▼ Downward'}
                 </span>
             </div>
-            <div className="h-87.5 w-full">
-                <Line options={options} data={chartData} />
+
+            <div className="h-80 w-full">
+                <Line options={options as any} data={chartData} />
             </div>
         </div>
     );

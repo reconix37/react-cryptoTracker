@@ -1,4 +1,5 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
+import { useThemes } from "@/hooks/useThemes";
 
 interface ChartData {
   name: string;
@@ -10,30 +11,74 @@ interface PortfolioChartProps {
   data: ChartData[];
 }
 
-const COLORS = ["#2563eb", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#64748b"];
+const COLORS = [
+  "hsl(var(--primary))",
+  "#6366f1",
+  "#ec4899",
+  "#f59e0b",
+  "#10b981",
+  "#8b5cf6"
+];
 
 export default function PortfolioChart({ data }: PortfolioChartProps) {
+  const { theme } = useThemes();
+  const isDark = theme === "dark";
+
   return (
-    <div className="h-87.5 w-full bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col">
-      <h3 className="font-semibold mb-2 text-slate-700">Allocation by Value</h3>
-      <div className="flex-1 w-full">
+    <div className="h-full w-full bg-card text-card-foreground p-6 rounded-xl shadow-sm border border-border flex flex-col transition-colors duration-300">
+
+      <h3 className="font-bold text-lg mb-4 text-foreground/90">
+        Allocation by Value
+      </h3>
+
+      <div className="flex-1 w-full min-h-75">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
               data={data}
               cx="50%"
               cy="50%"
-              innerRadius={60}
-              outerRadius={80}
-              paddingAngle={5}
+              innerRadius={70}
+              outerRadius={90}
+              paddingAngle={8}
               dataKey="value"
+              stroke="none"
             >
               {data.map((_, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                <Cell
+                  key={`cell-${index}`}
+                  fill={COLORS[index % COLORS.length]}
+                  style={{ filter: isDark ? 'brightness(0.9) saturate(1.2)' : 'none' }}
+                />
               ))}
             </Pie>
-            <Tooltip formatter={(value: number | undefined) => [`$${(value ?? 0).toLocaleString()}`, "Value"]} />
-            <Legend verticalAlign="bottom" height={36} />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: isDark ? "var(--popover)" : "#ffffff",
+                border: "1px solid var(--border)",
+                borderRadius: "12px",
+                boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                color: "var(--popover-foreground)"
+              }}
+              itemStyle={{ color: "var(--popover-foreground)" }}
+              cursor={{ fill: 'transparent' }}
+              formatter={(value: number | undefined) => [
+                `$${(value ?? 0).toLocaleString()}`,
+                "Value"
+              ]}
+            />
+            <Legend
+              verticalAlign="bottom"
+              align="center"
+              iconType="circle"
+              iconSize={10}
+              wrapperStyle={{
+                paddingTop: "20px",
+                fontSize: "12px",
+                fontWeight: "500",
+                color: "var(--muted-foreground)"
+              }}
+            />
           </PieChart>
         </ResponsiveContainer>
       </div>

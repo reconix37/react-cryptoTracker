@@ -48,6 +48,7 @@ export function usePortfolio() {
     }, 0);
   }, [assets, marketData]);
 
+
   const chartData = useMemo(() => {
     return assets.map((asset) => {
       const coin = marketData.find((c) => c.id === asset.id);
@@ -63,13 +64,23 @@ export function usePortfolio() {
 
   const handleAddAsset = (newAsset: PortfolioAsset) => {
     setAssets((prev) => {
-      const isExist = prev.some(a => a.id === newAsset.id);
-      if (isExist) {
-        return prev.map(a =>
-          a.id === newAsset.id
-            ? { ...a, amount: a.amount + newAsset.amount }
-            : a
-        );
+      const existingAsset = prev.find(a => a.id === newAsset.id);
+
+      if (existingAsset) {
+        return prev.map(a => {
+          if (a.id === newAsset.id) {
+            const totalAmount = a.amount + newAsset.amount;
+            const averagePrice =
+              ((a.amount * a.buyPrice) + (newAsset.amount * newAsset.buyPrice)) / totalAmount;
+
+            return {
+              ...a,
+              amount: totalAmount,
+              buyPrice: averagePrice
+            };
+          }
+          return a;
+        });
       }
       return [...prev, newAsset];
     });

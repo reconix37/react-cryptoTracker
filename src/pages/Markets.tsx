@@ -5,9 +5,7 @@ import CoinCardSkeleton from "@/components/coins/CoinCardSkeleton";
 import { useMarkets } from "@/hooks/useMarkets";
 import { motion } from "framer-motion";
 
-
 function Markets() {
-
   const {
     search,
     setSearch,
@@ -21,28 +19,53 @@ function Markets() {
   } = useMarkets();
 
   return (
-    <div className="min-h-screen flex flex-col w-full items-center justify-start gap-6 bg-gray-100 p-4">
-      <h1 className="text-2xl font-bold">Crypto Tracker App</h1>
-      <Input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search Cryptocurrency..." className="max-w-sm w-full mb-4" />
+    <div className="min-h-screen flex flex-col w-full items-center justify-start gap-6 bg-background text-foreground p-4 transition-colors duration-300">
+
+      <h1 className="text-4xl font-bold mt-4">Crypto Tracker App</h1>
+
+      <Input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search Cryptocurrency..."
+        className="max-w-sm w-full mb-4 bg-card border-border"
+      />
+
       <div className="flex gap-4 mb-4">
         <Button
-          className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${filter === "all" ? "bg-blue-600 text-white shadow-md scale-105" : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:scale-105"
+          className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 cursor-pointer ${filter === "all"
+              ? "bg-blue-600 text-white shadow-md scale-105 hover:bg-blue-700"
+              : "bg-secondary text-secondary-foreground hover:bg-accent hover:scale-105"
             }`}
           onClick={() => setFilter("all")}
-        >All Coins</Button>
+        >
+          All Coins
+        </Button>
+
         <Button
-          className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${filter === "watchlist" ? "bg-blue-600 text-white shadow-md scale-105" : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:scale-105"
+          className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 cursor-pointer ${filter === "watchlist"
+              ? "bg-blue-600 text-white shadow-md scale-105 hover:bg-blue-700"
+              : "bg-secondary text-secondary-foreground hover:bg-accent hover:scale-105"
             }`}
           onClick={() => setFilter("watchlist")}
-        >Watchlist ({watchlist.length})</Button>
+        >
+          Watchlist ({watchlist.length})
+        </Button>
       </div>
+
       <div className="max-w-4xl grid md:grid-cols-2 lg:grid-cols-2 gap-4 w-full">
         {isLoading && page === 1 ? (
           Array.from({ length: 10 }).map((_, i) => (
             <CoinCardSkeleton key={i} />
           ))
         ) : filter === "watchlist" && watchlist.length === 0 ? (
-          <p className="col-span-full text-center text-gray-500">No coins match your search.</p>
+          <p className="col-span-full text-center text-muted-foreground italic">
+            Your watchlist is empty.
+          </p>
+        ) : finalDisplayCoins.length === 0 ? (
+          <p className="col-span-full text-center text-muted-foreground">
+            No coins match your search.
+          </p>
         ) : (
           finalDisplayCoins.map((coin, index) => (
             <motion.div
@@ -55,6 +78,7 @@ function Markets() {
             </motion.div>
           ))
         )}
+
         {isLoading && page > 1 && (
           <>
             <CoinCardSkeleton />
@@ -62,8 +86,18 @@ function Markets() {
           </>
         )}
       </div>
-      {filter === "all" && !search && !isLoading && <Button variant={"default"} onClick={() => { setPage(page + 1) }}>More</Button>}
+
+      {filter === "all" && !search && !isLoading && (
+        <Button
+          variant="outline"
+          className="mt-4 mb-10 border-border hover:bg-accent cursor-pointer"
+          onClick={() => setPage(page + 1)}
+        >
+          Load More
+        </Button>
+      )}
     </div>
-  )
+  );
 }
-export default Markets
+
+export default Markets;

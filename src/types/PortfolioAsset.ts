@@ -1,4 +1,5 @@
 export interface PortfolioAsset {
     id: string;
-    amount: number;  
+    amount: number;
+    buyPrice: number;
 }
