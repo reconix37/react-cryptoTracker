@@ -1,11 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wallet, CircleDollarSign, Trash2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Wallet, CircleDollarSign, Trash2, Search } from "lucide-react";
 import AddAssetDialog from "@/components/profile/AddAssetDialog";
 import PortfolioChart from "@/components/profile/PortfolioChart";
 import { usePortfolio } from "@/hooks/usePortfolio";
 import { motion, AnimatePresence } from "framer-motion";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumbers";
+import { cn } from "@/lib/utils";
 
 export default function Profile() {
   const {
@@ -14,8 +17,12 @@ export default function Profile() {
     chartData,
     totalBalance,
     marketData,
+    filteredAssets,
+    searchQuery,
+    setSearchQuery,
     handleAddAsset,
-    handleDelete
+    handleDelete,
+    totalProfitData
   } = usePortfolio();
 
   return (
@@ -48,6 +55,15 @@ export default function Profile() {
               <div className="text-3xl font-black">
                 <span className="text-primary mr-1">$</span>
                 <AnimatedNumber value={totalBalance} />
+                <div className={cn(
+                  "flex items-center gap-1 text-sm font-medium mt-1",
+                  totalProfitData.isProfit ? "text-emerald-500" : "text-rose-500"
+                )}>
+                  <span>{totalProfitData.isProfit ? "▲" : "▼"}</span>
+                  <span>${Math.abs(totalProfitData.profit).toLocaleString()}</span>
+                  <span className="opacity-80 ml-1">({totalProfitData.percentage.toFixed(2)}%)</span>
+                  <span className="text-muted-foreground ml-1">all time</span>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -64,9 +80,17 @@ export default function Profile() {
       </div>
       <div className="bg-card rounded-2xl shadow-md border border-border overflow-hidden">
         <div className="p-6 border-b border-border bg-muted/30">
-          <h3 className="font-bold text-lg">Your Assets</h3>
+          <h3 className="font-bold text-lg mb-4">Your Assets</h3>
+                    <motion.div
+            whileFocus={{ scale: 1.01 }}
+            transition={{ duration: 0.2 }}
+            className="relative"
+          >
+              <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search coin..." className=" bg-muted/40 border-border rounded-xl px-10 py-2 text-sm font-medium placeholder:text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary transition-all"/>
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          </motion.div>
         </div>
-
+        
         <div className="divide-y divide-border">
           {assets.length === 0 ? (
             <div className="p-12 text-center text-muted-foreground">
@@ -75,9 +99,12 @@ export default function Profile() {
             </div>
           ) : (
             <AnimatePresence mode="popLayout">
-              {assets.map((asset) => {
+              {filteredAssets.map((asset) => {
                 const coin = marketData.find((c) => c.id === asset.id);
                 const value = coin ? coin.current_price * asset.amount : 0;
+                const assetProfit = coin ? (coin.current_price - asset.buyPrice) * asset.amount : 0;
+                const assetProfitPercent = coin ? ((coin.current_price - asset.buyPrice) / asset.buyPrice) * 100 : 0;
+                const isAssetProfit = assetProfit >= 0;
 
                 return (
                   <motion.div
@@ -106,9 +133,17 @@ export default function Profile() {
                     </div>
                     <div className="flex items-center gap-6">
                       <div className="text-right">
-                        <p className="font-bold text-lg">
-                          {coin ? `$${value.toLocaleString()}` : "..."}
-                        </p>
+                        <div className="flex gap-2 justify-end items-center">
+                          <p className="font-bold text-lg">
+                            {coin ? `$${value.toLocaleString()}` : "..."}
+                          </p>
+                          <p className={cn(
+                            "text-xs font-bold px-1.5 py-0.5 rounded inline-block mt-1",
+                            isAssetProfit ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"
+                          )}>
+                            {isAssetProfit ? "+" : ""}{assetProfitPercent.toFixed(2)}%
+                          </p>
+                        </div>
                         <p className="text-xs font-medium text-muted-foreground bg-secondary px-2 py-0.5 rounded mt-1">
                           ${coin?.current_price.toLocaleString()} / unit
                         </p>

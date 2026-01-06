@@ -9,6 +9,7 @@ export function usePortfolio() {
   const [assets, setAssets] = useLocalStorage<PortfolioAsset[]>("portfolio_assets", []);
   const [marketData, setMarketData] = useState<Coin[]>([]);
   const [allCoins, setAllCoins] = useState<Coin[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const fetchAllCoins = async () => {
@@ -47,6 +48,23 @@ export function usePortfolio() {
       return acc + (coin ? coin.current_price * asset.amount : 0);
     }, 0);
   }, [assets, marketData]);
+
+  const totalCost = useMemo(() => {
+    return assets.reduce((acc, a) => {
+      return acc + (a.amount * a.buyPrice);
+    }, 0);
+  }, [assets])
+
+  const totalProfitData = useMemo(() => {
+    const profit = totalBalance - totalCost
+    const percentage = totalCost > 0 ? (profit / totalCost) * 100 : 0
+
+    return {
+      profit,
+      percentage,
+      isProfit: profit >= 0
+    };
+  }, [totalBalance, totalCost])
 
 
   const chartData = useMemo(() => {
@@ -92,12 +110,23 @@ export function usePortfolio() {
     toast.error(`${assetId.toUpperCase()} removed from portfolio`);
   };
 
+  const filteredAssets = useMemo(() => {
+    return assets.filter(asset =>
+      asset.id.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [assets, searchQuery])
+
   return {
     assets,
     marketData,
     allCoins,
     totalBalance,
     chartData,
+    totalCost,
+    totalProfitData,
+    searchQuery,
+    filteredAssets,
+    setSearchQuery,
     handleAddAsset,
     handleDelete
   };
