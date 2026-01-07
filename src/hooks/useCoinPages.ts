@@ -3,11 +3,14 @@ import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import type { CoinDetails } from "../types/Coin";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { usePortfolio } from "./usePortfolio";
 
 export function useCoinPages() {
     const { id } = useParams();
     const [coinDetails, setCoinDetails] = useState<CoinDetails | null>(null);
     const [watchlist, setWatchlist] = useLocalStorage<string[]>("watchlist", []);
+
+    const { assets } = usePortfolio();
 
     const fetchCoinDetails = async (coinId: string | undefined) => {
         try {
@@ -52,9 +55,12 @@ export function useCoinPages() {
 
     }, [id]);
 
+    const myAsset = assets.find((a) => a.id === id)
+
     return {
         coinDetails,
         id,
+        myAsset,
         watchlist,
         isInWatchlist,
         toggleWatchlist,

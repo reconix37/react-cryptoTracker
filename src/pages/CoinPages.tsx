@@ -2,15 +2,23 @@ import { Link } from "react-router-dom"
 import { Button } from "@/components/ui/button";
 import CoinChart from "@/components/coins/CoinChart";
 import { useCoinPages } from "@/hooks/useCoinPages";
+import { Wallet } from "lucide-react";
+import { usePortfolio } from "@/hooks/usePortfolio";
+import { cn } from "@/lib/utils";
+import { AnimatedNumber } from "@/components/ui/AnimatedNumbers";
 
 export default function CoinPages() {
     const {
         coinDetails,
         id,
         isInWatchlist,
+        myAsset,
         toggleWatchlist,
         formatCompactNumber
     } = useCoinPages()
+
+    const { totalProfitData } = usePortfolio()
+
 
     if (!coinDetails) return (
         <div className="min-h-screen flex items-center justify-center bg-background">
@@ -42,8 +50,8 @@ export default function CoinPages() {
                                         type="button"
                                         onClick={toggleWatchlist}
                                         className={`px-6 py-2 rounded-full font-semibold transition-all duration-200 cursor-pointer ${isInWatchlist
-                                                ? "border-2 border-yellow-500 text-yellow-500 hover:bg-yellow-500/10"
-                                                : "bg-yellow-500 text-white hover:bg-yellow-600 shadow-md"
+                                            ? "border-2 border-yellow-500 text-yellow-500 hover:bg-yellow-500/10"
+                                            : "bg-yellow-500 text-white hover:bg-yellow-600 shadow-md"
                                             }`}
                                     >
                                         {isInWatchlist ? "In Watchlist ★" : "Add to Watchlist ☆"}
@@ -72,6 +80,53 @@ export default function CoinPages() {
                         <div className="mt-8 bg-card rounded-2xl border border-border p-4 shadow-sm">
                             <CoinChart coinId={id} />
                         </div>
+                        {myAsset && (
+                            <div className="mt-8 overflow-hidden bg-card border border-primary/20 rounded-2xl shadow-sm relative">
+                                <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
+                                <div className="p-6">
+                                    <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                                        <Wallet className="h-5 w-5 text-primary" />
+                                        Your Portfolio Position
+                                    </h3>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+                                        <div className="space-y-1">
+                                            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Holdings</p>
+                                            <p className="text-2xl font-black">
+                                                {myAsset.amount.toLocaleString()} <span className="text-sm font-medium text-muted-foreground">{coinDetails.symbol.toUpperCase()}</span>
+                                            </p>
+                                            <p className="text-sm font-medium text-primary">
+                                                ≈ ${(myAsset.amount * coinDetails.market_data.current_price.usd).toLocaleString()}
+                                            </p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Purchase Price</p>
+                                            <p className="text-2xl font-black">
+                                                <span className="text-primary mr-1">$</span>
+                                                <AnimatedNumber value={myAsset.buyPrice} />
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">Average per unit</p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Profit / Loss</p>
+                                            <div className={cn(
+                                                "text-2xl font-black flex items-center gap-2",
+                                                (coinDetails.market_data.current_price.usd - myAsset.buyPrice) >= 0 ? "text-emerald-500" : "text-rose-500"
+                                            )}>
+                                                <span>{(coinDetails.market_data.current_price.usd - myAsset.buyPrice) >= 0 ? "+" : "-"}$</span>
+                                                <AnimatedNumber value={Math.abs((coinDetails.market_data.current_price.usd - myAsset.buyPrice) * myAsset.amount)} />
+                                            </div>
+                                            <p className={cn(
+                                                "text-sm font-bold flex items-center gap-1",
+                                                (coinDetails.market_data.current_price.usd - myAsset.buyPrice) >= 0 ? "text-emerald-500/80" : "text-rose-500/80"
+                                            )}>
+                                                {(coinDetails.market_data.current_price.usd - myAsset.buyPrice) >= 0 ? "▲" : "▼"}
+                                                {Math.abs(((coinDetails.market_data.current_price.usd - myAsset.buyPrice) / myAsset.buyPrice) * 100).toFixed(2)}%
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         <div className="mt-8 p-2">
                             <h3 className="text-2xl font-semibold mb-4 border-b border-border pb-2">
                                 About {coinDetails.name}
