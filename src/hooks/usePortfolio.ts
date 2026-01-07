@@ -116,8 +116,24 @@ export function usePortfolio() {
     );
   }, [assets, searchQuery])
 
+  const performers = assets.length > 0 ? assets.map(asset => {
+    const coin = marketData.find(c => c.id === asset.id);
+    const change = coin ? ((coin.current_price - asset.buyPrice) / asset.buyPrice) * 100 : 0;
+    return { ...asset, change, symbol: coin?.symbol || asset.id };
+  }) : [];
+
+  const bestPerformer = performers.length > 0
+    ? performers.reduce((prev, curr) => (curr.change > prev.change ? curr : prev))
+    : null;
+
+  const worstPerformer = performers.length > 0
+    ? performers.reduce((prev, curr) => (curr.change < prev.change ? curr : prev))
+    : null;
+
   return {
     assets,
+    bestPerformer,
+    worstPerformer,
     marketData,
     allCoins,
     totalBalance,

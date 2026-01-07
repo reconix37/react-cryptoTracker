@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Wallet, CircleDollarSign, Trash2, Search } from "lucide-react";
+import { Wallet, CircleDollarSign, Trash2, Search, TrendingUp, TrendingDown } from "lucide-react";
 import AddAssetDialog from "@/components/profile/AddAssetDialog";
 import PortfolioChart from "@/components/profile/PortfolioChart";
 import { usePortfolio } from "@/hooks/usePortfolio";
@@ -17,6 +17,8 @@ export default function Profile() {
     allCoins,
     chartData,
     totalBalance,
+    bestPerformer,
+    worstPerformer,
     marketData,
     filteredAssets,
     searchQuery,
@@ -66,9 +68,40 @@ export default function Profile() {
                   <span className="text-muted-foreground ml-1">all time</span>
                 </div>
               </div>
+              {assets.length > 0 && (
+                <div className="mt-6 pt-6 border-t border-border/50 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 bg-emerald-500/10 rounded-md">
+                        <TrendingUp className="h-3 w-3 text-emerald-500" />
+                      </div>
+                      <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Top Gainer</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs font-black uppercase">{bestPerformer?.symbol}</p>
+                      <p className="text-xs font-bold text-emerald-500">+{bestPerformer?.change.toFixed(2)}%</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 bg-rose-500/10 rounded-md">
+                        <TrendingDown className="h-3 w-3 text-rose-500" />
+                      </div>
+                      <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Top Loser</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs font-black uppercase">{worstPerformer?.symbol}</p>
+                      <p className="text-xs font-bold text-rose-500">{worstPerformer?.change.toFixed(2)}%</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
+
+
 
         <motion.div className="md:col-span-2"
           initial={{ opacity: 0, y: 20 }}
@@ -78,7 +111,10 @@ export default function Profile() {
             <PortfolioChart data={chartData} />
           </div>
         </motion.div>
+
+
       </div>
+
       <div className="bg-card rounded-2xl shadow-md border border-border overflow-hidden">
         <div className="p-6 border-b border-border bg-muted/30">
           <h3 className="font-bold text-lg mb-4">Your Assets</h3>
