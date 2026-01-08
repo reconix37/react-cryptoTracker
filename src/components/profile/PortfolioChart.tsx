@@ -27,7 +27,7 @@ export default function PortfolioChart({ data }: PortfolioChartProps) {
   return (
     <div className="h-full w-full bg-card text-card-foreground p-6 rounded-xl shadow-sm border border-border flex flex-col transition-colors duration-300">
 
-      <h3 className="font-bold text-lg mb-4 text-foreground/90">
+      <h3 className="font-bold text-2xl mb-4 text-foreground/90">
         Allocation by Value
       </h3>
 
@@ -38,8 +38,8 @@ export default function PortfolioChart({ data }: PortfolioChartProps) {
               data={data}
               cx="50%"
               cy="50%"
-              innerRadius={70}
-              outerRadius={90}
+              innerRadius={80}
+              outerRadius={120}
               paddingAngle={8}
               dataKey="value"
               stroke="none"
@@ -74,7 +74,7 @@ export default function PortfolioChart({ data }: PortfolioChartProps) {
               iconSize={10}
               wrapperStyle={{
                 paddingTop: "20px",
-                fontSize: "12px",
+                fontSize: "1rem",
                 fontWeight: "500",
                 color: "var(--muted-foreground)"
               }}

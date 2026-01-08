@@ -16,24 +16,28 @@ interface AddAssetDialogProps {
 
 export default function AddAssetDialog({ onAdd, marketData }: AddAssetDialogProps) {
     const [newCoinId, setNewCoinId] = useState<string>("")
-    const [newCoinAmount, setNewCoinAmount] = useState<number>(0)
+    const [newCoinAmount, setNewCoinAmount] = useState<string>("0")
     const [emptyField, setEmptyField] = useState<boolean>(false)
     const [open, setOpen] = useState(false);
     const [openPopover, setOpenPopover] = useState(false);
-    const [newCoinPrice, setNewCoinPrice] = useState<number>(0)
+    const [newCoinPrice, setNewCoinPrice] = useState<string>("0")
 
     const handleSave = () => {
-        if (!newCoinId || !newCoinAmount || !newCoinPrice) {
-            setEmptyField(true)
-            return
+        const amount = parseFloat(newCoinAmount);
+        const price = parseFloat(newCoinPrice);
+
+        if (!newCoinId || isNaN(amount) || amount <= 0 || isNaN(price) || price <= 0) {
+            setEmptyField(true);
+            return;
         }
 
-        onAdd({ id: newCoinId, amount: newCoinAmount, buyPrice: newCoinPrice })
-        setNewCoinAmount(0)
-        setNewCoinPrice(0)
-        setNewCoinId("")
-        setEmptyField(false)
-        setOpen(false)
+        onAdd({ id: newCoinId, amount: amount, buyPrice: price });
+
+        setNewCoinAmount("");
+        setNewCoinPrice("");
+        setNewCoinId("");
+        setEmptyField(false);
+        setOpen(false);
     }
 
     return (
@@ -102,7 +106,7 @@ export default function AddAssetDialog({ onAdd, marketData }: AddAssetDialogProp
                                                     value={coin.name}
                                                     onSelect={() => {
                                                         setNewCoinId(coin.id);
-                                                        setNewCoinPrice(coin.current_price)
+                                                        setNewCoinPrice(coin.current_price.toString());
                                                         setOpenPopover(false);
                                                     }}
                                                     className="cursor-pointer aria-selected:bg-accent aria-selected:text-accent-foreground"
@@ -125,36 +129,43 @@ export default function AddAssetDialog({ onAdd, marketData }: AddAssetDialogProp
                             </PopoverContent>
                         </Popover>
                     </div>
-
                     <div className="grid gap-2">
                         <Label className="text-sm font-medium text-foreground">
                             Buy Price (per unit)
                         </Label>
-                        <div className="relative">
-                            <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">$</span>
+                        <div className="relative flex items-center">
+                            <span className="absolute left-3 text-muted-foreground text-sm pointer-events-none">
+                                $
+                            </span>
                             <Input
-                                type="number"
+                                type="text"
+                                inputMode="decimal"
                                 placeholder="0.00"
-                                className="pl-7 bg-card border-border"
-                                value={newCoinPrice || ""}
-                                onChange={(e) => setNewCoinPrice(parseFloat(e.target.value))}
+                                className="pl-7 bg-card border-border w-full"
+                                value={newCoinPrice}
+                                onChange={(e) => {
+                                    const val = e.target.value.replace(/[^0-9.]/g, '');
+                                    setNewCoinPrice(val);
+                                }}
                             />
                         </div>
                         <p className="text-[10px] text-muted-foreground">
-                            Current market price loaded automatically.
-                        </p>
+                        Current market price loaded automatically.
+                    </p>
                     </div>
                     <div className="grid gap-2">
                         <Label className="text-sm font-medium">
                             Quantity
                         </Label>
                         <Input
-                            type="number"
+                            type="text"
+                            inputMode="decimal"
                             placeholder="0.00"
-                            className="bg-card border-border text-foreground placeholder:text-muted-foreground"
-                            value={newCoinAmount || ""}
+                            className="bg-card border-border text-foreground"
+                            value={newCoinAmount}
                             onChange={(e) => {
-                                setNewCoinAmount(parseFloat(e.target.value));
+                                const val = e.target.value.replace(/[^0-9.]/g, '');
+                                setNewCoinAmount(val);
                                 setEmptyField(false);
                             }}
                         />

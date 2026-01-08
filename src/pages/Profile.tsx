@@ -10,10 +10,13 @@ import { AnimatedNumber } from "@/components/ui/AnimatedNumbers";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { Link } from "react-router-dom";
+import TransactionHistory from "@/components/profile/TransactionHistory";
+import { History } from "lucide-react";
 
 export default function Profile() {
   const {
     assets,
+    transactions,
     allCoins,
     chartData,
     totalBalance,
@@ -44,6 +47,7 @@ export default function Profile() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
+          className="space-y-6"
         >
           <Card className="bg-card text-card-foreground border-border shadow-md">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
@@ -79,7 +83,8 @@ export default function Profile() {
                     </div>
                     <div className="text-right">
                       <p className="text-xs font-black uppercase">{bestPerformer?.symbol}</p>
-                      <p className="text-xs font-bold text-emerald-500">+{bestPerformer?.change.toFixed(2)}%</p>
+                      <p className="text-xs font-bold text-emerald-500">{bestPerformer && bestPerformer.change > 0 ? "+" : ""}
+                        {bestPerformer?.change.toFixed(2)}%</p>
                     </div>
                   </div>
 
@@ -92,26 +97,37 @@ export default function Profile() {
                     </div>
                     <div className="text-right">
                       <p className="text-xs font-black uppercase">{worstPerformer?.symbol}</p>
-                      <p className="text-xs font-bold text-rose-500">{worstPerformer?.change.toFixed(2)}%</p>
+                      <p className="text-xs font-bold text-rose-500">
+                        {worstPerformer && worstPerformer.change > 0 ? "+" : ""}
+                        {worstPerformer?.change.toFixed(2)}%
+                      </p>
                     </div>
                   </div>
                 </div>
               )}
             </CardContent>
           </Card>
-        </motion.div>
-
-
-
-        <motion.div className="md:col-span-2"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}>
-          <div className="bg-card p-4 rounded-xl shadow-md border border-border h-full">
-            <PortfolioChart data={chartData} />
+          <div className="bg-card rounded-xl shadow-md border border-border overflow-hidden flex flex-col h-[400px]">
+            <div className="p-4 border-b border-border bg-muted/20 flex items-center gap-2 shrink-0">
+              <History className="h-4 w-4 text-primary" />
+              <h3 className="font-bold text-sm uppercase tracking-wider">Activity</h3>
+            </div>
+            <div className="overflow-y-auto custom-scrollbar grow">
+              <TransactionHistory transactions={transactions} allCoins={allCoins} />
+            </div>
           </div>
         </motion.div>
 
+        <motion.div
+          className="md:col-span-2"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <div className="bg-card p-4 rounded-xl shadow-md border border-border h-full min-h-125">
+            <PortfolioChart data={chartData} />
+          </div>
+        </motion.div>
 
       </div>
 
@@ -172,7 +188,9 @@ export default function Profile() {
                           </div>
                           <div>
                             <p className="font-black uppercase tracking-tight">{asset.id}</p>
-                            <p className="text-sm font-medium text-muted-foreground">{asset.amount.toLocaleString()} units</p>
+                            <p className="text-sm font-medium text-muted-foreground">
+                              {asset.amount.toLocaleString(undefined, { maximumFractionDigits: 8 })} units
+                            </p>
                           </div>
                         </div>
                       </Link>

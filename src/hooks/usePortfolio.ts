@@ -3,10 +3,12 @@ import { useLocalStorage } from "./useLocalStorage";
 import type { Coin } from "@/types/Coin";
 import type { PortfolioAsset } from "@/types/PortfolioAsset";
 import { toast } from "sonner";
+import type { AssetsTransactions } from "@/types/PortfolioAsset";
 
 export function usePortfolio() {
 
   const [assets, setAssets] = useLocalStorage<PortfolioAsset[]>("portfolio_assets", []);
+  const [transactions, setTransactions] = useLocalStorage<AssetsTransactions[]>("assets_transactions", [])
   const [marketData, setMarketData] = useState<Coin[]>([]);
   const [allCoins, setAllCoins] = useState<Coin[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -88,8 +90,7 @@ export function usePortfolio() {
         return prev.map(a => {
           if (a.id === newAsset.id) {
             const totalAmount = a.amount + newAsset.amount;
-            const averagePrice =
-              ((a.amount * a.buyPrice) + (newAsset.amount * newAsset.buyPrice)) / totalAmount;
+            const averagePrice = ((a.amount * a.buyPrice) + (newAsset.amount * newAsset.buyPrice)) / totalAmount;
 
             return {
               ...a,
@@ -103,11 +104,26 @@ export function usePortfolio() {
       return [...prev, newAsset];
     });
     toast.success(`${newAsset?.id.toUpperCase()} added to your Assets`);
+    addTransactionRecord({ coinId: newAsset.id, amount: newAsset.amount, buyPrice: newAsset.buyPrice, type: "buy" })
+  };
+
+  const addTransactionRecord = (data: Omit<AssetsTransactions, "id" | "date">) => {
+    const newTransaction: AssetsTransactions = {
+      ...data,
+      id: crypto.randomUUID(),
+      date: Date.now(),
+    };
+    setTransactions((prev) => [newTransaction, ...prev]);
   };
 
   const handleDelete = (assetId: string) => {
-    setAssets(prev => prev.filter(a => a.id !== assetId));
-    toast.error(`${assetId.toUpperCase()} removed from portfolio`);
+    const assetToDelete = assets.find((a) => a.id === assetId)
+    if (assetToDelete) {
+      const coinCurrentPrice = marketData.find((c) => c.id === assetId)
+      addTransactionRecord({ coinId: assetToDelete.id, amount: assetToDelete.amount, buyPrice: coinCurrentPrice?.current_price || assetToDelete.buyPrice, type: "sell" })
+      setAssets(prev => prev.filter(a => a.id !== assetId));
+      toast.error(`${assetId.toUpperCase()} removed from portfolio`);
+    }
   };
 
   const filteredAssets = useMemo(() => {
@@ -132,6 +148,7 @@ export function usePortfolio() {
 
   return {
     assets,
+    transactions,
     bestPerformer,
     worstPerformer,
     marketData,
