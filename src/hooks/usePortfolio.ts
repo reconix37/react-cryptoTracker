@@ -146,6 +146,8 @@ export function usePortfolio() {
     ? performers.reduce((prev, curr) => (curr.change < prev.change ? curr : prev))
     : null;
 
+    
+
   return {
     assets,
     transactions,

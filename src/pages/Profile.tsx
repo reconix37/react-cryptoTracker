@@ -163,6 +163,7 @@ export default function Profile() {
                   const value = coin ? coin.current_price * asset.amount : 0;
                   const assetProfit = coin ? (coin.current_price - asset.buyPrice) * asset.amount : 0;
                   const assetProfitPercent = coin ? ((coin.current_price - asset.buyPrice) / asset.buyPrice) * 100 : 0;
+                  const shareOfPortfolio = value ? (value / totalBalance) * 100 : 0;
                   const isAssetProfit = assetProfit >= 0;
 
                   return (
@@ -186,11 +187,20 @@ export default function Profile() {
                               />
                             )}
                           </div>
-                          <div>
-                            <p className="font-black uppercase tracking-tight">{asset.id}</p>
-                            <p className="text-sm font-medium text-muted-foreground">
-                              {asset.amount.toLocaleString(undefined, { maximumFractionDigits: 8 })} units
+                          <div className="flex flex-col gap-1">
+                            <p className="font-black uppercase tracking-tight leading-none">{asset.id}</p>
+                            <p className="text-xs font-medium text-muted-foreground leading-none">
+                              {asset.amount.toLocaleString()} units
                             </p>
+                            {totalBalance > 0 && (
+                              <div className="w-24 bg-muted h-1 rounded-full overflow-hidden mt-1">
+                                <motion.div
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${shareOfPortfolio}%` }}
+                                  className="bg-primary h-full"
+                                />
+                              </div>
+                            )}
                           </div>
                         </div>
                       </Link>
