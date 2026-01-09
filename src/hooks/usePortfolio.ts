@@ -79,7 +79,8 @@ export function usePortfolio() {
           share: totalBalance > 0 ? (value / totalBalance) * 100 : 0,
           isProfit: profit >= 0
         };
-      });
+      })
+      .sort((a, b) => b.totalValue - a.totalValue);
   }, [assets, marketData, searchQuery, totalBalance]);
 
   const bestPerformer = useMemo(() => 
