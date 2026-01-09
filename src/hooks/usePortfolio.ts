@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import type { AssetsTransactions } from "@/types/PortfolioAsset";
 
 export function usePortfolio() {
-
   const [assets, setAssets] = useLocalStorage<PortfolioAsset[]>("portfolio_assets", []);
   const [transactions, setTransactions] = useLocalStorage<AssetsTransactions[]>("assets_transactions", [])
   const [marketData, setMarketData] = useState<Coin[]>([]);
@@ -24,88 +23,76 @@ export function usePortfolio() {
     fetchAllCoins();
   }, []);
 
-  const fetchMarketData = async () => {
-    if (assets.length === 0) return;
-    const ids = assets.map((a) => a.id).join(",");
-    try {
-      const response = await fetch(
-        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}`
-      );
-      const data = await response.json();
-      setMarketData(data);
-    } catch (error) {
-      console.error("Error fetching portfolio market data:", error);
-      toast.error("Failed to update prices. Check your connection.");
-    }
-  };
-
   useEffect(() => {
+    const fetchMarketData = async () => {
+      if (assets.length === 0) return;
+      const ids = assets.map((a) => a.id).join(",");
+      try {
+        const response = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}`);
+        const data = await response.json();
+        setMarketData(data);
+      } catch (error) {
+        console.error("Error fetching portfolio market data:", error);
+      }
+    };
     fetchMarketData();
   }, [assets]);
 
-
-  const totalBalance = useMemo(() => {
-    return assets.reduce((acc, asset) => {
-      const coin = marketData.find((c) => c.id === asset.id);
-      return acc + (coin ? coin.current_price * asset.amount : 0);
-    }, 0);
+  const { totalBalance, totalCost } = useMemo(() => {
+    let balance = 0;
+    let cost = 0;
+    assets.forEach(asset => {
+      const coin = marketData.find(c => c.id === asset.id);
+      balance += coin ? coin.current_price * asset.amount : 0;
+      cost += asset.amount * asset.buyPrice;
+    });
+    return { totalBalance: balance, totalCost: cost };
   }, [assets, marketData]);
-
-  const totalCost = useMemo(() => {
-    return assets.reduce((acc, a) => {
-      return acc + (a.amount * a.buyPrice);
-    }, 0);
-  }, [assets])
 
   const totalProfitData = useMemo(() => {
-    const profit = totalBalance - totalCost
-    const percentage = totalCost > 0 ? (profit / totalCost) * 100 : 0
-
+    const profit = totalBalance - totalCost;
     return {
       profit,
-      percentage,
+      percentage: totalCost > 0 ? (profit / totalCost) * 100 : 0,
       isProfit: profit >= 0
     };
-  }, [totalBalance, totalCost])
+  }, [totalBalance, totalCost]);
 
+  const enrichedAssets = useMemo(() => {
+    return assets
+      .filter(asset => asset.id.toLowerCase().includes(searchQuery.toLowerCase()))
+      .map(asset => {
+        const coin = marketData.find(c => c.id === asset.id);
+        const currentPrice = coin?.current_price || 0;
+        const value = currentPrice * asset.amount;
+        const profit = (currentPrice - asset.buyPrice) * asset.amount;
+        
+        return {
+          ...asset,
+          name: coin?.name || asset.id,
+          symbol: coin?.symbol || "",
+          image: coin?.image || "",
+          currentPrice,
+          totalValue: value,
+          profit,
+          profitPercent: asset.buyPrice > 0 ? ((currentPrice - asset.buyPrice) / asset.buyPrice) * 100 : 0,
+          share: totalBalance > 0 ? (value / totalBalance) * 100 : 0,
+          isProfit: profit >= 0
+        };
+      });
+  }, [assets, marketData, searchQuery, totalBalance]);
 
-  const chartData = useMemo(() => {
-    return assets.map((asset) => {
-      const coin = marketData.find((c) => c.id === asset.id);
-      const price = coin ? Number(coin.current_price) : 0;
-      const amount = Number(asset.amount);
+  const bestPerformer = useMemo(() => 
+    enrichedAssets.length > 0 ? [...enrichedAssets].sort((a, b) => b.profitPercent - a.profitPercent)[0] : null
+  , [enrichedAssets]);
 
-      return {
-        name: coin?.name || asset.id,
-        value: price * amount
-      };
-    }).filter(item => item.value > 0);
-  }, [assets, marketData]);
+  const worstPerformer = useMemo(() => 
+    enrichedAssets.length > 0 ? [...enrichedAssets].sort((a, b) => a.profitPercent - b.profitPercent)[0] : null
+  , [enrichedAssets]);
 
-  const handleAddAsset = (newAsset: PortfolioAsset) => {
-    setAssets((prev) => {
-      const existingAsset = prev.find(a => a.id === newAsset.id);
-
-      if (existingAsset) {
-        return prev.map(a => {
-          if (a.id === newAsset.id) {
-            const totalAmount = a.amount + newAsset.amount;
-            const averagePrice = ((a.amount * a.buyPrice) + (newAsset.amount * newAsset.buyPrice)) / totalAmount;
-
-            return {
-              ...a,
-              amount: totalAmount,
-              buyPrice: averagePrice
-            };
-          }
-          return a;
-        });
-      }
-      return [...prev, newAsset];
-    });
-    toast.success(`${newAsset?.id.toUpperCase()} added to your Assets`);
-    addTransactionRecord({ coinId: newAsset.id, amount: newAsset.amount, buyPrice: newAsset.buyPrice, type: "buy" })
-  };
+  const chartData = useMemo(() => 
+    enrichedAssets.map(a => ({ name: a.name, value: a.totalValue })).filter(v => v.value > 0)
+  , [enrichedAssets]);
 
   const addTransactionRecord = (data: Omit<AssetsTransactions, "id" | "date">) => {
     const newTransaction: AssetsTransactions = {
@@ -116,51 +103,46 @@ export function usePortfolio() {
     setTransactions((prev) => [newTransaction, ...prev]);
   };
 
-  const handleDelete = (assetId: string) => {
-    const assetToDelete = assets.find((a) => a.id === assetId)
-    if (assetToDelete) {
-      const coinCurrentPrice = marketData.find((c) => c.id === assetId)
-      addTransactionRecord({ coinId: assetToDelete.id, amount: assetToDelete.amount, buyPrice: coinCurrentPrice?.current_price || assetToDelete.buyPrice, type: "sell" })
-      setAssets(prev => prev.filter(a => a.id !== assetId));
-      toast.error(`${assetId.toUpperCase()} removed from portfolio`);
+  const handleAddAsset = (newAsset: PortfolioAsset) => {
+    setAssets((prev) => {
+      const existing = prev.find(a => a.id === newAsset.id);
+      if (existing) {
+        return prev.map(a => {
+          if (a.id === newAsset.id) {
+            const totalAmount = a.amount + newAsset.amount;
+            const avgPrice = ((a.amount * a.buyPrice) + (newAsset.amount * newAsset.buyPrice)) / totalAmount;
+            return { ...a, amount: totalAmount, buyPrice: avgPrice };
+          }
+          return a;
+        });
+      }
+      return [...prev, newAsset];
+    });
+    addTransactionRecord({ coinId: newAsset.id, amount: newAsset.amount, buyPrice: newAsset.buyPrice, type: "buy" });
+    toast.success(`${newAsset.id.toUpperCase()} added`);
+  };
+
+  const handleDelete = (id: string) => {
+    const asset = assets.find(a => a.id === id);
+    if (asset) {
+      const current = marketData.find(c => c.id === id);
+      addTransactionRecord({ coinId: id, amount: asset.amount, buyPrice: current?.current_price || asset.buyPrice, type: "sell" });
+      setAssets(prev => prev.filter(a => a.id !== id));
+      toast.error(`${id.toUpperCase()} removed`);
     }
   };
 
-  const filteredAssets = useMemo(() => {
-    return assets.filter(asset =>
-      asset.id.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [assets, searchQuery])
-
-  const performers = assets.length > 0 ? assets.map(asset => {
-    const coin = marketData.find(c => c.id === asset.id);
-    const change = coin ? ((coin.current_price - asset.buyPrice) / asset.buyPrice) * 100 : 0;
-    return { ...asset, change, symbol: coin?.symbol || asset.id };
-  }) : [];
-
-  const bestPerformer = performers.length > 0
-    ? performers.reduce((prev, curr) => (curr.change > prev.change ? curr : prev))
-    : null;
-
-  const worstPerformer = performers.length > 0
-    ? performers.reduce((prev, curr) => (curr.change < prev.change ? curr : prev))
-    : null;
-
-    
-
   return {
     assets,
+    enrichedAssets,
     transactions,
     bestPerformer,
     worstPerformer,
-    marketData,
     allCoins,
     totalBalance,
     chartData,
-    totalCost,
     totalProfitData,
     searchQuery,
-    filteredAssets,
     setSearchQuery,
     handleAddAsset,
     handleDelete
