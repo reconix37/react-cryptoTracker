@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import CoinChart from "@/components/coins/CoinChart";
 import { useCoinPages } from "@/hooks/useCoinPages";
 import { Wallet } from "lucide-react";
-import { usePortfolio } from "@/hooks/usePortfolio";
 import { cn } from "@/lib/utils";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumbers";
 
@@ -16,9 +15,6 @@ export default function CoinPages() {
         toggleWatchlist,
         formatCompactNumber
     } = useCoinPages()
-
-    const { totalProfitData } = usePortfolio()
-
 
     if (!coinDetails) return (
         <div className="min-h-screen flex items-center justify-center bg-background">

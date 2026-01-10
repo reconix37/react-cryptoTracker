@@ -13,6 +13,8 @@ import { Link } from "react-router-dom";
 import TransactionHistory from "@/components/profile/TransactionHistory";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import PortfolioSkeleton from "@/components/profile/PortfolioSkeleton";
+import FearGreedWidget from "@/components/profile/FearGreedWidget";
+import { useFearGreed } from "@/hooks/useFearGreed";
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('en-US', {
@@ -42,6 +44,14 @@ export default function Profile() {
     handleDelete,
     refetch,
   } = usePortfolio();
+
+  const {
+    refetch: refetchFearGreed
+  } = useFearGreed();
+
+  const handleGlobalRefetch = async () => {
+    await Promise.all([refetch(true), refetchFearGreed(true)])
+  };
 
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-8 bg-background text-foreground min-h-screen">
@@ -100,6 +110,9 @@ export default function Profile() {
               )}
             </CardContent>
           </Card>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+            <FearGreedWidget />
+          </motion.div>
 
           <div className="bg-card rounded-xl shadow-md border flex flex-col h-100">
             <div className="p-4 border-b bg-muted/20 flex items-center gap-2 shrink-0">
@@ -142,7 +155,7 @@ export default function Profile() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => refetch(true)}
+                onClick={() => handleGlobalRefetch()}
                 className="ml-auto bg-transparent border-white/20 hover:bg-white/10"
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
