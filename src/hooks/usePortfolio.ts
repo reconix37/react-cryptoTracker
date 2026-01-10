@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useLocalStorage } from "./useLocalStorage";
 import type { Coin } from "@/types/Coin";
 import type { PortfolioAsset } from "@/types/PortfolioAsset";
@@ -7,34 +7,57 @@ import type { AssetsTransactions } from "@/types/PortfolioAsset";
 
 export function usePortfolio() {
   const [assets, setAssets] = useLocalStorage<PortfolioAsset[]>("portfolio_assets", []);
-  const [transactions, setTransactions] = useLocalStorage<AssetsTransactions[]>("assets_transactions", [])
+  const [transactions, setTransactions] = useLocalStorage<AssetsTransactions[]>("assets_transactions", []);
   const [marketData, setMarketData] = useState<Coin[]>([]);
   const [allCoins, setAllCoins] = useState<Coin[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const lastFetched = useRef(0)
+
+
+  const fetchMarketData = useCallback(async () => {
+    setError("")
+
+    if (assets.length === 0) return;
+    const ids = assets.map((a) => a.id).join(",");
+
+    try {
+      setIsLoading(true)
+
+      const response = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}`);
+      if (!response.ok) throw new Error('Not found or too many requrests')
+      const data = await response.json();
+
+      setMarketData(data);
+
+      lastFetched.current = Date.now();
+
+    } catch (error) {
+      console.error("Error fetching portfolio market data:", error);
+      setError(error instanceof Error ? error.message : "Something went wrong")
+    }
+  }, []);
+
+  const fetchAllCoins = useCallback(async () => {
+    try {
+      setError("")
+      setIsLoading(true)
+      const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1');
+      if (!response.ok) throw new Error('Not found or too many requrests')
+      const data = await response.json();
+      setAllCoins(data);
+    } catch (e) {
+      console.error("Error fetching all coins:", e);
+      setError(e instanceof Error ? e.message : "Something went wrong")
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchAllCoins = async () => {
-      try {
-        const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1');
-        const data = await response.json();
-        setAllCoins(data);
-      } catch (e) { console.error("Error fetching all coins:", e); }
-    };
     fetchAllCoins();
   }, []);
 
   useEffect(() => {
-    const fetchMarketData = async () => {
-      if (assets.length === 0) return;
-      const ids = assets.map((a) => a.id).join(",");
-      try {
-        const response = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}`);
-        const data = await response.json();
-        setMarketData(data);
-      } catch (error) {
-        console.error("Error fetching portfolio market data:", error);
-      }
-    };
     fetchMarketData();
   }, [assets]);
 
@@ -66,7 +89,7 @@ export function usePortfolio() {
         const currentPrice = coin?.current_price || 0;
         const value = currentPrice * asset.amount;
         const profit = (currentPrice - asset.buyPrice) * asset.amount;
-        
+
         return {
           ...asset,
           name: coin?.name || asset.id,
@@ -83,17 +106,17 @@ export function usePortfolio() {
       .sort((a, b) => b.totalValue - a.totalValue);
   }, [assets, marketData, searchQuery, totalBalance]);
 
-  const bestPerformer = useMemo(() => 
+  const bestPerformer = useMemo(() =>
     enrichedAssets.length > 0 ? [...enrichedAssets].sort((a, b) => b.profitPercent - a.profitPercent)[0] : null
-  , [enrichedAssets]);
+    , [enrichedAssets]);
 
-  const worstPerformer = useMemo(() => 
+  const worstPerformer = useMemo(() =>
     enrichedAssets.length > 0 ? [...enrichedAssets].sort((a, b) => a.profitPercent - b.profitPercent)[0] : null
-  , [enrichedAssets]);
+    , [enrichedAssets]);
 
-  const chartData = useMemo(() => 
+  const chartData = useMemo(() =>
     enrichedAssets.map(a => ({ name: a.name, value: a.totalValue })).filter(v => v.value > 0)
-  , [enrichedAssets]);
+    , [enrichedAssets]);
 
   const addTransactionRecord = (data: Omit<AssetsTransactions, "id" | "date">) => {
     const newTransaction: AssetsTransactions = {
@@ -133,8 +156,27 @@ export function usePortfolio() {
     }
   };
 
+  const refetch = async (force = false) => {
+    const now = Date.now();
+
+    if (!force && now - lastFetched.current < 60000) {
+      console.log("Too early for update, skipping...");
+      return;
+    }
+    setError(null)
+    setIsLoading(true)
+
+    try {
+      await Promise.all([fetchAllCoins(), fetchMarketData()]);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return {
     assets,
+    isLoading,
+    error,
     enrichedAssets,
     transactions,
     bestPerformer,
@@ -144,6 +186,7 @@ export function usePortfolio() {
     chartData,
     totalProfitData,
     searchQuery,
+    refetch,
     setSearchQuery,
     handleAddAsset,
     handleDelete
