@@ -12,12 +12,13 @@ interface PortfolioChartProps {
 }
 
 const COLORS = [
-  "hsl(var(--primary))",
   "#6366f1",
   "#ec4899",
   "#f59e0b",
   "#10b981",
-  "#8b5cf6"
+  "#8b5cf6",
+  "#06b6d4",
+  "#ef4444"
 ];
 
 export default function PortfolioChart({ data }: PortfolioChartProps) {

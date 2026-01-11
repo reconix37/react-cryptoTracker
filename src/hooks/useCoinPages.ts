@@ -9,6 +9,7 @@ export function useCoinPages() {
     const { id } = useParams();
     const [coinDetails, setCoinDetails] = useState<CoinDetails | null>(null);
     const [watchlist, setWatchlist] = useLocalStorage<string[]>("watchlist", []);
+    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
     const { assets } = usePortfolio();
 
@@ -57,12 +58,24 @@ export function useCoinPages() {
 
     const myAsset = assets.find((a) => a.id === id)
 
+    useEffect(() => {
+    if (coinDetails) {
+        document.title = `${coinDetails.name} (${coinDetails.symbol.toUpperCase()}) | CryptoTracker`;
+    }
+
+    return () => {
+        document.title = "My Portfolio | CryptoTracker";
+    };
+}, [coinDetails]);
+
     return {
         coinDetails,
+        isAddDialogOpen,
         id,
         myAsset,
         watchlist,
         isInWatchlist,
+        setIsAddDialogOpen,
         toggleWatchlist,
         formatCompactNumber
     }

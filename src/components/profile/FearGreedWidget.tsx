@@ -10,7 +10,7 @@ export default function FearGreedWidget() {
     if (isLoading) {
         return (
             <Card className="bg-card/50 border-none animate-pulse">
-                <CardContent className="p-4 h-[88px] flex items-center justify-center">
+                <CardContent className="p-4 h-22 flex items-center justify-center">
                     <div className="h-4 w-full bg-muted rounded" />
                 </CardContent>
             </Card>

@@ -2,9 +2,11 @@ import { Link } from "react-router-dom"
 import { Button } from "@/components/ui/button";
 import CoinChart from "@/components/coins/CoinChart";
 import { useCoinPages } from "@/hooks/useCoinPages";
-import { Wallet } from "lucide-react";
+import { PlusIcon, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumbers";
+import AddAssetDialog from "@/components/profile/AddAssetDialog";
+import { usePortfolio } from "@/hooks/usePortfolio";
 
 export default function CoinPages() {
     const {
@@ -12,9 +14,16 @@ export default function CoinPages() {
         id,
         isInWatchlist,
         myAsset,
+        isAddDialogOpen,
+        setIsAddDialogOpen,
         toggleWatchlist,
         formatCompactNumber
     } = useCoinPages()
+
+    const {
+        allCoins,
+        handleAddAsset
+    } = usePortfolio()
 
     if (!coinDetails) return (
         <div className="min-h-screen flex items-center justify-center bg-background">
@@ -123,6 +132,23 @@ export default function CoinPages() {
                                 </div>
                             </div>
                         )}
+                        {!myAsset && (
+                            <div className="mt-8 p-8 border-2 border-dashed border-muted rounded-2xl flex flex-col items-center text-center gap-4">
+                                <div className="p-4 bg-muted rounded-full">
+                                    <PlusIcon className="h-8 w-8 text-muted-foreground" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold">Not in your portfolio</h3>
+                                    <p className="text-muted-foreground">
+                                        You don't own any {coinDetails.name} yet.
+                                        Add it to track your potential profits!
+                                    </p>
+                                </div>
+                                <Button onClick={() => setIsAddDialogOpen(true)}>
+                                    Add {coinDetails.symbol.toUpperCase()} to Portfolio
+                                </Button>
+                            </div>
+                        )}
                         <div className="mt-8 p-2">
                             <h3 className="text-2xl font-semibold mb-4 border-b border-border pb-2">
                                 About {coinDetails.name}
@@ -139,6 +165,16 @@ export default function CoinPages() {
                     </>
                 )}
             </div>
+            <AddAssetDialog
+                open={isAddDialogOpen}
+                onOpenChange={setIsAddDialogOpen}
+                preselectedAssetId={id}
+                marketData={allCoins}
+                onAdd={(data) => {
+                    handleAddAsset(data);
+                    setIsAddDialogOpen(false);
+                }}
+            />
         </div>
     )
 }
