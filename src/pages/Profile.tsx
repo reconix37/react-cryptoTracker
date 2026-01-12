@@ -25,6 +25,7 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
+
 export default function Profile() {
   const {
     assets,
@@ -45,17 +46,15 @@ export default function Profile() {
     refetch,
   } = usePortfolio();
 
-  const {
-    refetch: refetchFearGreed
-  } = useFearGreed();
+  const { refetch: refetchFearGreed } = useFearGreed();
 
   const handleGlobalRefetch = async () => {
-    await Promise.all([refetch(true), refetchFearGreed(true)])
+    await Promise.all([refetch(true), refetchFearGreed(true)]);
   };
 
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-8 bg-background text-foreground min-h-screen">
-
+ 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">My Portfolio</h1>
@@ -65,6 +64,7 @@ export default function Profile() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
+
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
           <Card className="bg-card shadow-md">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
@@ -84,6 +84,7 @@ export default function Profile() {
                   <span className="opacity-80">({totalProfitData.percentage.toFixed(2)}%)</span>
                 </div>
               </div>
+
               {assets.length > 0 && (
                 <div className="mt-6 pt-6 border-t border-border/50 space-y-4">
                   <div className="flex items-center justify-between">
@@ -110,24 +111,27 @@ export default function Profile() {
               )}
             </CardContent>
           </Card>
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-            <FearGreedWidget />
-          </motion.div>
 
-          <div className="bg-card rounded-xl shadow-md border flex flex-col h-100">
+          <FearGreedWidget />
+
+          <div className="bg-card rounded-xl shadow-md border flex flex-col h-[400px]"> {/* Фикс высоты */}
             <div className="p-4 border-b bg-muted/20 flex items-center gap-2 shrink-0">
               <History className="h-4 w-4 text-primary" />
               <h3 className="font-bold text-sm uppercase">Activity</h3>
             </div>
-            <div className="overflow-y-auto grow"><TransactionHistory transactions={transactions} allCoins={allCoins} /></div>
+            <div className="overflow-y-auto grow">
+              <TransactionHistory transactions={transactions} allCoins={allCoins} />
+            </div>
           </div>
         </motion.div>
+
         <motion.div className="md:col-span-2" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <div className="bg-card p-4 rounded-xl shadow-md border h-full min-h-100">
+          <div className="bg-card p-4 rounded-xl shadow-md border h-full min-h-[450px]"> {/* Фикс высоты контейнера */}
             <PortfolioChart data={chartData} />
           </div>
         </motion.div>
       </div>
+
       <div className="bg-card rounded-2xl shadow-md border overflow-hidden">
         <div className="p-6 border-b bg-muted/30">
           <h3 className="font-bold text-lg mb-4">Your Assets</h3>
@@ -144,38 +148,35 @@ export default function Profile() {
 
         <div className="divide-y">
           {error && (
-            <Alert variant="destructive" className="mb-6 flex items-center justify-between">
+            <Alert variant="destructive" className="m-4 flex items-center justify-between bg-rose-500/10 border-rose-500/20 text-rose-600">
               <div className="flex items-center gap-3">
                 <AlertCircleIcon className="h-5 w-5" />
                 <div>
-                  <AlertTitle className="font-bold">Update Failed</AlertTitle>
+                  <AlertTitle className="font-bold">Update Note</AlertTitle>
                   <p className="text-sm opacity-90">{error}</p>
                 </div>
               </div>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleGlobalRefetch()}
-                className="ml-auto bg-transparent border-white/20 hover:bg-white/10"
+                onClick={handleGlobalRefetch}
+                className="ml-auto border-rose-500/20 hover:bg-rose-500/10"
               >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Try Again
+                <RefreshCw className={cn("mr-2 h-4 w-4", isLoading && "animate-spin")} />
+                Update Now
               </Button>
             </Alert>
           )}
-          {
-            isLoading && enrichedAssets.length === 0 &&
-            Array.from({ length: 10 }).map((_, i) => (
-              <PortfolioSkeleton key={i} />
-            ))
+
+          {isLoading && enrichedAssets.length === 0 &&
+            Array.from({ length: 5 }).map((_, i) => <PortfolioSkeleton key={i} />)
           }
+
           {!isLoading && assets.length === 0 ? (
             <div className="p-12 text-center text-muted-foreground">
               <CircleDollarSign className="mx-auto h-16 w-16 mb-4 opacity-10" />
               <p>Your portfolio is empty.</p>
             </div>
-          ) : !isLoading && assets.length > 0 && enrichedAssets.length === 0 ? (
-            <div className="p-12 text-center text-muted-foreground">No coins found matching "{searchQuery}"</div>
           ) : (
             <AnimatePresence mode="popLayout">
               {enrichedAssets.map((asset) => (
@@ -193,22 +194,23 @@ export default function Profile() {
                         <img src={asset.image} alt="" className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-background z-10 relative" />
                       ) : (
                         <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-background bg-secondary flex items-center justify-center text-[10px] z-10 relative font-bold">
-                          {asset.symbol?.toUpperCase()}
+                          {asset.symbol?.toUpperCase() || "?"}
                         </div>
                       )}
                     </div>
                     <div className="flex flex-col gap-0.5 min-w-0">
                       <p className="font-black uppercase truncate text-sm sm:text-base">{asset.id}</p>
                       <p className="text-xs text-muted-foreground">{asset.amount.toLocaleString()} units</p>
-                      <div className="hidden xs:block w-24 bg-muted h-1 rounded-full overflow-hidden mt-1">
+                      <div className="w-24 bg-muted h-1 rounded-full overflow-hidden mt-1">
                         <motion.div
                           initial={{ width: 0 }}
-                          animate={{ width: `${asset.share}%` }}
+                          animate={{ width: `${Math.min(asset.share, 100)}%` }}
                           className="bg-primary h-full"
                         />
                       </div>
                     </div>
                   </Link>
+
                   <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6 w-full sm:w-auto border-t sm:border-0 pt-3 sm:pt-0">
                     <div className="text-left sm:text-right">
                       <div className="flex gap-2 justify-start sm:justify-end items-center">
@@ -234,11 +236,19 @@ export default function Profile() {
                       <AlertDialogContent>
                         <AlertDialogHeader>
                           <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                          <AlertDialogDescription>This will remove {asset.id.toUpperCase()} from your portfolio.</AlertDialogDescription>
+                          <AlertDialogDescription>This will remove {asset.id.toUpperCase()} and its history.</AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDelete(asset.id)}>Remove</AlertDialogAction>
+                          <AlertDialogAction 
+                            onClick={(e) => {
+                              e.preventDefault(); // Чтобы линк не срабатывал
+                              handleDelete(asset.id);
+                            }}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Remove
+                          </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>

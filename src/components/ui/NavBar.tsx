@@ -1,30 +1,12 @@
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useThemes } from "@/hooks/useThemes";
-import { useEffect } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Moon, Sun, Star } from "lucide-react";
 
 export default function NavBar() {
-    const [watchlist, setWatchlist] = useLocalStorage<string[]>("watchlist", []);
-    const { theme, toggleTheme } = useThemes()
-
-    useEffect(() => {
-        const handleStorageChange = () => {
-            const item = window.localStorage.getItem("watchlist");
-            if (item) {
-                setWatchlist(JSON.parse(item));
-            }
-        };
-
-        window.addEventListener("local-storage", handleStorageChange);
-        window.addEventListener("storage", handleStorageChange);
-
-        return () => {
-            window.removeEventListener("local-storage", handleStorageChange);
-            window.removeEventListener("storage", handleStorageChange);
-        };
-    }, []);
+    const [watchlist] = useLocalStorage<string[]>("watchlist", []);
+    const { theme, toggleTheme } = useThemes();
 
     return (
         <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md transition-colors duration-300">
@@ -59,6 +41,7 @@ export default function NavBar() {
                         </NavLink>
                     </div>
                 </div>
+
                 <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2 bg-blue-500/10 dark:bg-blue-500/20 px-3 py-1.5 rounded-full border border-blue-500/20">
                         <Star className="w-4 h-4 text-blue-600 dark:text-blue-400 fill-current" />
@@ -66,6 +49,7 @@ export default function NavBar() {
                             {watchlist.length}
                         </span>
                     </div>
+
                     <Button
                         variant="ghost"
                         size="icon"
@@ -81,5 +65,5 @@ export default function NavBar() {
                 </div>
             </div>
         </nav>
-    )
+    );
 }
