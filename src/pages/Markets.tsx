@@ -11,6 +11,7 @@ function Markets() {
     setSearch,
     filter,
     setFilter,
+    error,
     watchlist,
     setPage,
     page,
@@ -53,8 +54,18 @@ function Markets() {
         </Button>
       </div>
 
+      {error && finalDisplayCoins.length > 0 && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-2 rounded-lg text-sm mb-4"
+        >
+          Using offline data. Live updates are temporarily unavailable.
+        </motion.div>
+      )}
+
       <div className="max-w-4xl grid md:grid-cols-2 lg:grid-cols-2 gap-4 w-full">
-        {isLoading && page === 1 ? (
+        {isLoading && finalDisplayCoins.length === 0 ? (
           Array.from({ length: 10 }).map((_, i) => (
             <CoinCardSkeleton key={i} />
           ))

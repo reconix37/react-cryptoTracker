@@ -16,6 +16,7 @@ export default function CoinPages() {
         id,
         isInWatchlist,
         myAsset,
+        lastUpdated,
         isAddDialogOpen,
         setIsAddDialogOpen,
         fetchCoinDetails,
@@ -60,7 +61,7 @@ export default function CoinPages() {
                             <div className="flex-1 text-center md:text-left w-full">
                                 <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                                     <h1 className="text-4xl font-bold">
-                                        {coinDetails.name} <span className="text-muted-foreground uppercase text-2xl ml-2">{coinDetails.symbol}</span>
+                                        {coinDetails.name} <span className="text-muted-foreground uppercase text-4xl ml-2">{coinDetails.symbol}</span>
                                     </h1>
 
                                     <button
@@ -75,15 +76,29 @@ export default function CoinPages() {
                                     </button>
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
-                                    <div className="bg-secondary/50 p-4 rounded-xl border border-border/50">
-                                        <p className="text-muted-foreground text-sm font-medium mb-1">Price</p>
-                                        <p className="text-2xl font-bold">
-                                            ${coinDetails.market_data.current_price.usd.toLocaleString()}
-                                            <span className={coinDetails.market_data.price_change_percentage_24h > 0 ? "text-green-500 ml-2 text-base" : "text-red-500 ml-2 text-base"}>
-                                                {coinDetails.market_data.price_change_percentage_24h > 0 ? "▲" : "▼"}
-                                                {Math.abs(coinDetails.market_data.price_change_percentage_24h).toFixed(2)}%
-                                            </span>
+                                    <div className="bg-secondary/50 p-4 rounded-xl border border-border/50 relative">
+                                        <p className="text-muted-foreground text-sm font-medium mb-1 flex justify-between">
+                                            Price
+                                            {error && <span className="text-[10px] text-destructive animate-pulse">Offline</span>}
                                         </p>
+
+                                        <div className={cn(
+                                            "transition-opacity duration-500",
+                                            error ? "opacity-50" : "opacity-100"
+                                        )}>
+                                            <p className="text-2xl font-bold">
+                                                ${coinDetails.market_data.current_price.usd.toLocaleString()}
+                                                <span className={coinDetails.market_data.price_change_percentage_24h > 0 ? "text-green-500 ml-2 text-base" : "text-red-500 ml-2 text-base"}>
+                                                    {coinDetails.market_data.price_change_percentage_24h > 0 ? "▲" : "▼"}
+                                                    {Math.abs(coinDetails.market_data.price_change_percentage_24h).toFixed(2)}%
+                                                </span>
+                                            </p>
+                                        </div>
+                                        {lastUpdated && (
+                                            <p className="text-[10px] text-muted-foreground mt-1">
+                                                Last updated: {lastUpdated.toLocaleTimeString()}
+                                            </p>
+                                        )}
                                     </div>
                                     <div className="bg-secondary/50 p-4 rounded-xl border border-border/50">
                                         <p className="text-muted-foreground text-sm font-medium mb-1">Market Cap</p>

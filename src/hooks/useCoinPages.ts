@@ -10,51 +10,43 @@ export function useCoinPages() {
     const [coinDetails, setCoinDetails] = useState<CoinDetails | null>(null);
     const [watchlist, setWatchlist] = useLocalStorage<string[]>("watchlist", []);
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-    const lastFetched = useRef(0)
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+    const lastFetched = useRef(0)
+
 
     const { assets } = usePortfolio();
 
     const fetchCoinDetails = useCallback(async (coinId: string | undefined) => {
-
         if (!coinId) return;
 
-        const now = Date.now();
-        const timeSinceLastFetch = now - lastFetched.current;
-
-        if (timeSinceLastFetch < 60000 && coinDetails) {
-            return;
-        }
-
         try {
-            setIsLoading(true)
-            setError(null)
+            setIsLoading(true);
+            setError(null);
 
             const response = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}`);
 
             if (!response.ok) {
-                if (response.status === 429) throw new Error("API Limit reached. Please wait a minute.");
-                if (response.status === 404) throw new Error("Coin not found.");
-                throw new Error("Failed to fetch data.");
+                if (response.status === 429) throw new Error("API Limit reached (429)");
+                throw new Error("Failed to fetch");
             }
 
             const data = await response.json();
-
             setCoinDetails(data);
-
+            setLastUpdated(new Date());
             lastFetched.current = Date.now();
-        }
-        catch (error) {
-            setError(error instanceof Error ? error.message : "Something went wrong")
-            if(coinDetails) {
-                toast.error(`${error}`)
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Error";
+            setError(message);
+            if (coinDetails) {
+                toast.error("Using cached data: " + message);
             }
+        } finally {
+            setIsLoading(false);
         }
-        finally {
-            setIsLoading(false)
-        }
-    }, [coinDetails])
+    }, [coinDetails]);
 
     const isInWatchlist = id ? watchlist.includes(id) : false;
 
@@ -109,6 +101,7 @@ export function useCoinPages() {
         myAsset,
         watchlist,
         isInWatchlist,
+        lastUpdated,
         fetchCoinDetails,
         setIsAddDialogOpen,
         toggleWatchlist,
