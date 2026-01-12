@@ -19,7 +19,16 @@ export function usePortfolio() {
   const fetchMarketData = useCallback(async () => {
     setError("")
 
+
     if (assets.length === 0) return;
+
+    const now = Date.now();
+    const timeSinceLastFetch = now - lastFetched.current;
+
+    if (timeSinceLastFetch < 60000 && marketData) {
+      return;
+    }
+
     const ids = assets.map((a) => a.id).join(",");
 
     try {
@@ -40,13 +49,25 @@ export function usePortfolio() {
   }, []);
 
   const fetchAllCoins = useCallback(async () => {
+
+    const now = Date.now();
+    const timeSinceLastFetch = now - lastFetched.current;
+
+    if (timeSinceLastFetch < 60000 && marketData) {
+      return;
+    }
+
     try {
       setError("")
       setIsLoading(true)
+
       const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1');
       if (!response.ok) throw new Error('Not found or too many requrests')
       const data = await response.json();
       setAllCoins(data);
+
+      lastFetched.current = Date.now();
+
     } catch (e) {
       console.error("Error fetching all coins:", e);
       setError(e instanceof Error ? e.message : "Something went wrong")
@@ -54,7 +75,7 @@ export function usePortfolio() {
   }, []);
 
   useEffect(() => {
-    fetchAllCoins();
+      fetchAllCoins();
   }, []);
 
   useEffect(() => {

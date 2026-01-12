@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import type { CoinDetails } from "../types/Coin";
@@ -10,19 +10,51 @@ export function useCoinPages() {
     const [coinDetails, setCoinDetails] = useState<CoinDetails | null>(null);
     const [watchlist, setWatchlist] = useLocalStorage<string[]>("watchlist", []);
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+    const lastFetched = useRef(0)
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const { assets } = usePortfolio();
 
-    const fetchCoinDetails = async (coinId: string | undefined) => {
+    const fetchCoinDetails = useCallback(async (coinId: string | undefined) => {
+
+        if (!coinId) return;
+
+        const now = Date.now();
+        const timeSinceLastFetch = now - lastFetched.current;
+
+        if (timeSinceLastFetch < 60000 && coinDetails) {
+            return;
+        }
+
         try {
+            setIsLoading(true)
+            setError(null)
+
             const response = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}`);
+
+            if (!response.ok) {
+                if (response.status === 429) throw new Error("API Limit reached. Please wait a minute.");
+                if (response.status === 404) throw new Error("Coin not found.");
+                throw new Error("Failed to fetch data.");
+            }
+
             const data = await response.json();
+
             setCoinDetails(data);
+
+            lastFetched.current = Date.now();
         }
         catch (error) {
-            console.error("Error fetching coin details:", error);
+            setError(error instanceof Error ? error.message : "Something went wrong")
+            if(coinDetails) {
+                toast.error(`${error}`)
+            }
         }
-    }
+        finally {
+            setIsLoading(false)
+        }
+    }, [coinDetails])
 
     const isInWatchlist = id ? watchlist.includes(id) : false;
 
@@ -59,22 +91,25 @@ export function useCoinPages() {
     const myAsset = assets.find((a) => a.id === id)
 
     useEffect(() => {
-    if (coinDetails) {
-        document.title = `${coinDetails.name} (${coinDetails.symbol.toUpperCase()}) | CryptoTracker`;
-    }
+        if (coinDetails) {
+            document.title = `${coinDetails.name} (${coinDetails.symbol.toUpperCase()}) | CryptoTracker`;
+        }
 
-    return () => {
-        document.title = "My Portfolio | CryptoTracker";
-    };
-}, [coinDetails]);
+        return () => {
+            document.title = "My Portfolio | CryptoTracker";
+        };
+    }, [coinDetails]);
 
     return {
         coinDetails,
+        error,
+        isLoading,
         isAddDialogOpen,
         id,
         myAsset,
         watchlist,
         isInWatchlist,
+        fetchCoinDetails,
         setIsAddDialogOpen,
         toggleWatchlist,
         formatCompactNumber

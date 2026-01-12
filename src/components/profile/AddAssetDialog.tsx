@@ -36,20 +36,22 @@ export default function AddAssetDialog({
     const [emptyField, setEmptyField] = useState(false);
 
     const selectedCoin = useMemo(() =>
-        marketData.find((c: Coin) => c.id === (preselectedAssetId || newCoinId)),
-        [marketData, preselectedAssetId, newCoinId]);
+        marketData.find((c: Coin) => c.id === newCoinId),
+        [marketData, newCoinId]
+    );
 
     useEffect(() => {
         if (isOpen) {
             if (preselectedAssetId) {
-                const coin = marketData.find((c: Coin) => c.id === preselectedAssetId);
+                setNewCoinId(preselectedAssetId);
+                const coin = marketData.find((c) => c.id === preselectedAssetId);
+
                 if (coin) {
-                    setNewCoinId(coin.id);
                     setNewCoinPrice(coin.current_price.toString());
                 }
             }
         } else {
-            if (!controlledOpen) {
+            if (controlledOpen === undefined || !controlledOpen) {
                 setNewCoinId("");
                 setNewCoinAmount("");
                 setNewCoinPrice("");
@@ -114,7 +116,7 @@ export default function AddAssetDialog({
                                         {selectedCoin ? (
                                             <div className="flex items-center gap-2">
                                                 <img src={selectedCoin.image} className="w-5 h-5 rounded-full" alt="" />
-                                                {selectedCoin.name}
+                                                <span className="font-bold">{selectedCoin.name}</span>
                                             </div>
                                         ) : "Search coin..."}
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
