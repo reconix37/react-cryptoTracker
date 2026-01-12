@@ -185,16 +185,22 @@ export default function Profile() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0, x: -20 }}
-                  className="p-5 flex items-center justify-between hover:bg-muted/50 group transition-all"
+                  className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-muted/50 group transition-all gap-4"
                 >
-                  <Link to={`/coin/${asset.id}`} className="flex items-center gap-4">
-                    <div className="relative">
-                      <img src={asset.image} alt="" className="w-12 h-12 rounded-full border-2 border-background z-10 relative" />
+                  <Link to={`/coin/${asset.id}`} className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className="relative shrink-0">
+                      {asset.image ? (
+                        <img src={asset.image} alt="" className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-background z-10 relative" />
+                      ) : (
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-background bg-secondary flex items-center justify-center text-[10px] z-10 relative font-bold">
+                          {asset.symbol?.toUpperCase()}
+                        </div>
+                      )}
                     </div>
-                    <div className="flex flex-col gap-1">
-                      <p className="font-black uppercase">{asset.id}</p>
+                    <div className="flex flex-col gap-0.5 min-w-0">
+                      <p className="font-black uppercase truncate text-sm sm:text-base">{asset.id}</p>
                       <p className="text-xs text-muted-foreground">{asset.amount.toLocaleString()} units</p>
-                      <div className="w-24 bg-muted h-1 rounded-full overflow-hidden mt-1">
+                      <div className="hidden xs:block w-24 bg-muted h-1 rounded-full overflow-hidden mt-1">
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{ width: `${asset.share}%` }}
@@ -203,25 +209,25 @@ export default function Profile() {
                       </div>
                     </div>
                   </Link>
-                  <div className="flex items-center gap-6">
-                    <div className="text-right">
-                      <div className="flex gap-2 justify-end items-center">
-                        <p className="font-bold text-lg">{formatCurrency(asset.totalValue)}</p>
+                  <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6 w-full sm:w-auto border-t sm:border-0 pt-3 sm:pt-0">
+                    <div className="text-left sm:text-right">
+                      <div className="flex gap-2 justify-start sm:justify-end items-center">
+                        <p className="font-bold text-base sm:text-lg">{formatCurrency(asset.totalValue)}</p>
                         <p className={cn(
-                          "text-xs font-bold px-1.5 py-0.5 rounded",
+                          "text-[10px] sm:text-xs font-bold px-1.5 py-0.5 rounded",
                           asset.isProfit ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"
                         )}>
                           {asset.isProfit ? "+" : ""}{asset.profitPercent.toFixed(2)}%
                         </p>
                       </div>
-                      <p className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded mt-1 inline-block">
+                      <p className="text-[10px] sm:text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded mt-1 inline-block">
                         {formatCurrency(asset.currentPrice)} / unit
                       </p>
                     </div>
 
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="icon" className="text-destructive sm:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                           <Trash2 className="h-5 w-5" />
                         </Button>
                       </AlertDialogTrigger>

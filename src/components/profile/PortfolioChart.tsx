@@ -28,7 +28,7 @@ export default function PortfolioChart({ data }: PortfolioChartProps) {
   return (
     <div className="h-full w-full bg-card text-card-foreground p-6 rounded-xl shadow-sm border border-border flex flex-col transition-colors duration-300">
 
-      <h3 className="font-bold text-2xl mb-4 text-foreground/90">
+      <h3 className="font-bold text-2xl mb-4 sm: mb-8 text-foreground/90">
         Allocation by Value
       </h3>
 
@@ -39,8 +39,8 @@ export default function PortfolioChart({ data }: PortfolioChartProps) {
               data={data}
               cx="50%"
               cy="50%"
-              innerRadius={80}
-              outerRadius={120}
+              innerRadius="60%"
+              outerRadius="80%"
               paddingAngle={8}
               dataKey="value"
               stroke="none"
