@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react"; // Добавили useRef
 import { useLocalStorage } from "./useLocalStorage";
 import type { Coin } from "@/types/Coin";
 import { toast } from "sonner";
