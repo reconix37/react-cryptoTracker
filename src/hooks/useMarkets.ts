@@ -1,7 +1,6 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from "react"; // Добавили useRef
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useLocalStorage } from "./useLocalStorage";
 import type { Coin } from "@/types/Coin";
-import { toast } from "sonner";
 
 export function useMarkets() {
     const [coins, setCoins] = useState<Coin[]>([]);
