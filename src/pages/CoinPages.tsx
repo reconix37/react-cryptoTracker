@@ -56,7 +56,9 @@ export default function CoinPages() {
                 {coinDetails && (
                     <>
                         <div className="bg-card text-card-foreground rounded-2xl shadow-sm border border-border p-8 flex flex-col md:flex-row gap-8 items-center md:items-start">
-                            <img src={coinDetails.image.large} className="w-32 h-32" alt={coinDetails.name} />
+                            {coinDetails.image?.large && (
+                                <img src={coinDetails.image.large} className="w-32 h-32" alt={coinDetails.name} />
+                            )}
 
                             <div className="flex-1 text-center md:text-left w-full">
                                 <div className="flex flex-col md:flex-row items-center justify-between gap-4">
@@ -181,11 +183,9 @@ export default function CoinPages() {
                                 About {coinDetails.name}
                             </h3>
                             <div
-                                className="text-foreground/80 leading-relaxed text-lg 
-                                    [&_a]:text-blue-500 [&_a]:hover:underline 
-                                    [&_p]:mb-4"
+                                className="text-foreground/80 leading-relaxed text-lg [&_a]:text-blue-500 [&_a]:hover:underline [&_p]:mb-4"
                                 dangerouslySetInnerHTML={{
-                                    __html: coinDetails.description.en || "No description available."
+                                    __html: coinDetails.description?.en || "No description available."
                                 }}
                             />
                         </div>

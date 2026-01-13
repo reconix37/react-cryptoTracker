@@ -1,25 +1,33 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 export function useLocalStorage<T>(key: string, initialValue: T) {
-  const readValue = useCallback((): T => {
+  const initializer = useRef((key: string, initialValue: T): T => {
     if (typeof window === "undefined") return initialValue;
     try {
       const item = window.localStorage.getItem(key);
       return item ? (JSON.parse(item) as T) : initialValue;
     } catch (error) {
-      console.warn(`Error reading localStorage key “${key}”:`, error);
       return initialValue;
     }
-  }, [initialValue, key]);
+  });
 
-  const [storedValue, setStoredValue] = useState<T>(readValue);
+  const [storedValue, setStoredValue] = useState<T>(() => 
+    initializer.current(key, initialValue)
+  );
 
   const setValue = useCallback((value: T | ((val: T) => T)) => {
     try {
       const valueToStore = value instanceof Function ? value(storedValue) : value;
+
+      const stringifiedNext = JSON.stringify(valueToStore);
+      const stringifiedCurrent = JSON.stringify(storedValue);
+
+      if (stringifiedCurrent === stringifiedNext) return;
+      
       setStoredValue(valueToStore);
+      
       if (typeof window !== "undefined") {
-        window.localStorage.setItem(key, JSON.stringify(valueToStore));
+        window.localStorage.setItem(key, stringifiedNext);
         window.dispatchEvent(new Event("local-storage"));
       }
     } catch (error) {
@@ -29,14 +37,17 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
 
   useEffect(() => {
     const handleStorageChange = () => {
-      const newValue = readValue();
+      try {
+        const latestValue = initializer.current(key, initialValue);
+        const stringifiedLatest = JSON.stringify(latestValue);
+        const stringifiedCurrent = JSON.stringify(storedValue);
 
-      setStoredValue((prevValue) => {
-        if (JSON.stringify(prevValue) === JSON.stringify(newValue)) {
-          return prevValue;
+        if (stringifiedCurrent !== stringifiedLatest) {
+          setStoredValue(latestValue);
         }
-        return newValue;
-      });
+      } catch (e) {
+        console.error("Sync error", e);
+      }
     };
 
     window.addEventListener("storage", handleStorageChange);
@@ -46,7 +57,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("local-storage", handleStorageChange);
     };
-  }, [readValue]);
+  }, [key, initialValue, storedValue]); 
 
   return [storedValue, setValue] as const;
 }

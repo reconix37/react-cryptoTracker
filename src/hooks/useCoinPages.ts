@@ -14,22 +14,22 @@ export function useCoinPages() {
     const [error, setError] = useState<string | null>(null);
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-    const lastFetched = useRef(0)
-
-
+    const lastFetched = useRef(0);
     const { assets } = usePortfolio();
 
     const fetchCoinDetails = useCallback(async (coinId: string | undefined) => {
-        if (!coinId) return;
+        if (!coinId || isLoading) return;
+
+        const now = Date.now();
+        if (now - lastFetched.current < 30000) return;
 
         try {
             setIsLoading(true);
             setError(null);
-
-            const response = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}`);
+            const response = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}?localization=false&tickers=false&community_data=false&developer_data=false`);
 
             if (!response.ok) {
-                if (response.status === 429) throw new Error("API Limit reached (429)");
+                if (response.status === 429) throw new Error("429");
                 throw new Error("Failed to fetch");
             }
 
@@ -37,16 +37,20 @@ export function useCoinPages() {
             setCoinDetails(data);
             setLastUpdated(new Date());
             lastFetched.current = Date.now();
-        } catch (error) {
-            const message = error instanceof Error ? error.message : "Error";
-            setError(message);
-            if (coinDetails) {
-                toast.error("Using cached data: " + message);
-            }
+        } catch (error: any) {
+            setError(error.message === "429" ? "Rate limit reached" : "Error");
         } finally {
             setIsLoading(false);
         }
-    }, [coinDetails]);
+    }, [isLoading]);
+
+    useEffect(() => {
+        if (id) {
+            fetchCoinDetails(id);
+            const interval = setInterval(() => fetchCoinDetails(id), 120000);
+            return () => clearInterval(interval);
+        }
+    }, [id, fetchCoinDetails]);
 
     const isInWatchlist = id ? watchlist.includes(id) : false;
 
@@ -68,17 +72,6 @@ export function useCoinPages() {
             maximumFractionDigits: 2,
         }).format(number);
     };
-
-    useEffect(() => {
-        fetchCoinDetails(id);
-
-        const interval = setInterval(() => {
-            fetchCoinDetails(id);
-        }, 60000);
-
-        return () => clearInterval(interval);
-
-    }, [id]);
 
     const myAsset = assets.find((a) => a.id === id)
 

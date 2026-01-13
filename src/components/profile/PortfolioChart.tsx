@@ -25,23 +25,30 @@ export default function PortfolioChart({ data }: PortfolioChartProps) {
   const { theme } = useThemes();
   const isDark = theme === "dark";
 
-  return (
-    <div className="h-full w-full bg-card text-card-foreground p-6 rounded-xl shadow-sm border border-border flex flex-col transition-colors duration-300">
+  if (!data || data.length === 0) {
+    return (
+      <div className="h-[400px] w-full bg-card p-6 rounded-xl flex items-center justify-center text-muted-foreground italic">
+        No asset data available to display.
+      </div>
+    );
+  }
 
-      <h3 className="font-bold text-2xl mb-4 sm: mb-8 text-foreground/90">
+  return (
+    <div className="h-[450px] w-full bg-card text-card-foreground p-6 rounded-xl flex flex-col transition-colors duration-300">
+      <h3 className="font-bold text-2xl mb-4 sm:mb-8 text-foreground/90">
         Allocation by Value
       </h3>
 
-      <div className="flex-1 w-full min-h-75">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
+      <div className="flex-1 w-full min-h-[300px] relative">
+        <ResponsiveContainer width="99%" height={350}>
+          <PieChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
             <Pie
               data={data}
               cx="50%"
               cy="50%"
               innerRadius="60%"
-              outerRadius="80%"
-              paddingAngle={8}
+              outerRadius="90%"
+              paddingAngle={5}
               dataKey="value"
               stroke="none"
             >
@@ -55,10 +62,9 @@ export default function PortfolioChart({ data }: PortfolioChartProps) {
             </Pie>
             <Tooltip
               contentStyle={{
-                backgroundColor: isDark ? "var(--popover)" : "#ffffff",
+                backgroundColor: "var(--popover)",
                 border: "1px solid var(--border)",
                 borderRadius: "12px",
-                boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
                 color: "var(--popover-foreground)"
               }}
               itemStyle={{ color: "var(--popover-foreground)" }}
@@ -68,18 +74,7 @@ export default function PortfolioChart({ data }: PortfolioChartProps) {
                 "Value"
               ]}
             />
-            <Legend
-              verticalAlign="bottom"
-              align="center"
-              iconType="circle"
-              iconSize={10}
-              wrapperStyle={{
-                paddingTop: "20px",
-                fontSize: "1rem",
-                fontWeight: "500",
-                color: "var(--muted-foreground)"
-              }}
-            />
+            <Legend verticalAlign="bottom" align="center" iconType="circle" />
           </PieChart>
         </ResponsiveContainer>
       </div>

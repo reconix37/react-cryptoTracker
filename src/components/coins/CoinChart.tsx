@@ -59,7 +59,6 @@ export default function CoinChart({ coinId }: CoinChartProps) {
             {
                 data: historicData.map((dataPoint) => dataPoint[1]),
                 borderColor: themeColor,
-                // Используем чуть более выраженную заливку для темной темы
                 backgroundColor: isPriceUp ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
                 fill: true,
                 tension: 0.4,

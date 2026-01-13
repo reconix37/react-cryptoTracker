@@ -54,7 +54,7 @@ export default function Profile() {
 
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-8 bg-background text-foreground min-h-screen">
- 
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">My Portfolio</h1>
@@ -84,29 +84,36 @@ export default function Profile() {
                   <span className="opacity-80">({totalProfitData.percentage.toFixed(2)}%)</span>
                 </div>
               </div>
-
               {assets.length > 0 && (
                 <div className="mt-6 pt-6 border-t border-border/50 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="h-3 w-3 text-emerald-500" />
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase">Top Gainer</span>
+                  {bestPerformer && bestPerformer.profitPercent > 0 && (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="h-3 w-3 text-emerald-500" />
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase">Top Gainer</span>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs font-black uppercase">{bestPerformer.symbol}</p>
+                        <p className="text-xs font-bold text-emerald-500">
+                          +{bestPerformer.profitPercent.toFixed(2)}%
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-xs font-black uppercase">{bestPerformer?.symbol}</p>
-                      <p className="text-xs font-bold text-emerald-500">+{bestPerformer?.profitPercent.toFixed(2)}%</p>
+                  )}
+                  {worstPerformer && worstPerformer.profitPercent < 0 && (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <TrendingDown className="h-3 w-3 text-rose-500" />
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase">Top Loser</span>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs font-black uppercase">{worstPerformer.symbol}</p>
+                        <p className="text-xs font-bold text-rose-500">
+                          {worstPerformer.profitPercent.toFixed(2)}%
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <TrendingDown className="h-3 w-3 text-rose-500" />
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase">Top Loser</span>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs font-black uppercase">{worstPerformer?.symbol}</p>
-                      <p className="text-xs font-bold text-rose-500">{worstPerformer?.profitPercent.toFixed(2)}%</p>
-                    </div>
-                  </div>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -114,7 +121,7 @@ export default function Profile() {
 
           <FearGreedWidget />
 
-          <div className="bg-card rounded-xl shadow-md border flex flex-col h-[400px]"> {/* Фикс высоты */}
+          <div className="bg-card rounded-xl shadow-md border flex flex-col h-[400px]"> 
             <div className="p-4 border-b bg-muted/20 flex items-center gap-2 shrink-0">
               <History className="h-4 w-4 text-primary" />
               <h3 className="font-bold text-sm uppercase">Activity</h3>
@@ -126,7 +133,7 @@ export default function Profile() {
         </motion.div>
 
         <motion.div className="md:col-span-2" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <div className="bg-card p-4 rounded-xl shadow-md border h-full min-h-[450px]"> {/* Фикс высоты контейнера */}
+          <div className="bg-card p-4 rounded-xl shadow-md border h-full min-h-[450px]"> 
             <PortfolioChart data={chartData} />
           </div>
         </motion.div>
@@ -240,9 +247,9 @@ export default function Profile() {
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction 
+                          <AlertDialogAction
                             onClick={(e) => {
-                              e.preventDefault(); // Чтобы линк не срабатывал
+                              e.preventDefault();
                               handleDelete(asset.id);
                             }}
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
