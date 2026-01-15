@@ -42,7 +42,7 @@ export function useCoinPages() {
         } finally {
             setIsLoading(false);
         }
-    }, [isLoading]);
+    }, [id]);
 
     useEffect(() => {
         if (id) {

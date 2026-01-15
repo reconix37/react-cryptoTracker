@@ -26,7 +26,7 @@ export function useCoinCharts(coinId: string | undefined) {
             if (!response.ok) throw new Error(`Status: ${response.status}`);
 
             const data = await response.json();
-
+            
             if (data.prices) {
                 setHistoricData(data.prices);
                 lastFetched.current = { id, tf: timeFrame, time: now };
