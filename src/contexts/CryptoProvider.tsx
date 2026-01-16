@@ -2,7 +2,7 @@ import { useLocalStorage } from "@/hooks/useLocalStorage";
 import type { Coin } from "@/types/Coin";
 import type { CryptoContext } from "@/types/CryptoContext";
 import type { PortfolioAsset } from "@/types/PortfolioAsset";
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
 
 const CryptoContext = createContext<CryptoContext | undefined>(undefined);
 

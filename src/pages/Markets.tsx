@@ -90,7 +90,7 @@ function Markets() {
           ))
         )}
 
-        {isLoading && page > 1 && (
+        {isLoading && page !== null && page > 1 && (
           <>
             <CoinCardSkeleton />
             <CoinCardSkeleton />
@@ -102,7 +102,7 @@ function Markets() {
         <Button
           variant="outline"
           className="mt-4 mb-10 border-border hover:bg-accent cursor-pointer"
-          onClick={() => setPage(page + 1)}
+          onClick={() => setPage((prev) => prev + 1)}
         >
           Load More
         </Button>

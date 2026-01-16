@@ -8,7 +8,7 @@ export interface CryptoContext {
     lastUpdated: Date | null;
 
     page: number | null;
-    setPage(page: number): void;
+    setPage: React.Dispatch<React.SetStateAction<number>>;
 
     refreshData: () => Promise<void>;
 
