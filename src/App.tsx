@@ -5,10 +5,12 @@ import CoinPages from './pages/CoinPages';
 import NavBar from './components/ui/NavBar';
 import Profile from './pages/Profile';
 import { Toaster } from 'sonner';
+import CryptoProvider from './contexts/CryptoProvider';
 
 function App() {
 
   return (
+    <CryptoProvider>
     <BrowserRouter>
       <Toaster position="top-center" richColors closeButton />
       <NavBar />
@@ -18,6 +20,7 @@ function App() {
         <Route path="/profile" element={<Profile />} />
       </Routes>
     </BrowserRouter>
+    </CryptoProvider>
   )
 }
 export default App

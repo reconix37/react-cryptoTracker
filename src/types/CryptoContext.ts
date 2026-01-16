@@ -13,4 +13,6 @@ export interface CryptoContext {
     refreshData: () => Promise<void>;
 
     getCoinById: (id: string) => Coin | undefined;
+
+    fetchCoinById: (id: string) => Promise<void>;
 }

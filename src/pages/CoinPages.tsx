@@ -16,18 +16,19 @@ export default function CoinPages() {
         id,
         isInWatchlist,
         myAsset,
-        lastUpdated,
         isAddDialogOpen,
         setIsAddDialogOpen,
-        fetchCoinDetails,
         toggleWatchlist,
-        formatCompactNumber
+        formatCompactNumber,
+        fetchCoinById
     } = useCoinPages()
 
     const {
         allCoins,
         handleAddAsset
     } = usePortfolio()
+
+
 
     if (isLoading && !coinDetails) return (
         <div className="min-h-screen flex items-center justify-center bg-background">
@@ -38,8 +39,13 @@ export default function CoinPages() {
     if (error && !coinDetails) {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-                <p className="text-destructive font-bold">Error: {error}</p>
-                <Button onClick={() => fetchCoinDetails(id)}>Try again</Button>
+                <div className="text-center space-y-2">
+                    <p className="text-destructive font-bold text-xl">Oops! Something went wrong</p>
+                    <p className="text-muted-foreground">{error}</p>
+                </div>
+                <Button onClick={() => id && fetchCoinById(id)}>
+                    Try again
+                </Button>
             </div>
         );
     }
@@ -56,8 +62,8 @@ export default function CoinPages() {
                 {coinDetails && (
                     <>
                         <div className="bg-card text-card-foreground rounded-2xl shadow-sm border border-border p-8 flex flex-col md:flex-row gap-8 items-center md:items-start">
-                            {coinDetails.image?.large && (
-                                <img src={coinDetails.image.large} className="w-32 h-32" alt={coinDetails.name} />
+                            {coinDetails.image && (
+                                <img src={coinDetails.image} className="w-32 h-32" alt={coinDetails.name} />
                             )}
 
                             <div className="flex-1 text-center md:text-left w-full">
@@ -89,23 +95,18 @@ export default function CoinPages() {
                                             error ? "opacity-50" : "opacity-100"
                                         )}>
                                             <p className="text-2xl font-bold">
-                                                ${coinDetails.market_data.current_price.usd.toLocaleString()}
-                                                <span className={coinDetails.market_data.price_change_percentage_24h > 0 ? "text-green-500 ml-2 text-base" : "text-red-500 ml-2 text-base"}>
-                                                    {coinDetails.market_data.price_change_percentage_24h > 0 ? "▲" : "▼"}
-                                                    {Math.abs(coinDetails.market_data.price_change_percentage_24h).toFixed(2)}%
+                                                ${coinDetails.current_price.toLocaleString()}
+                                                <span className={coinDetails.price_change_percentage_24h > 0 ? "text-green-500 ml-2 text-base" : "text-red-500 ml-2 text-base"}>
+                                                    {coinDetails.price_change_percentage_24h > 0 ? "▲" : "▼"}
+                                                    {Math.abs(coinDetails.price_change_percentage_24h).toFixed(2)}%
                                                 </span>
                                             </p>
                                         </div>
-                                        {lastUpdated && (
-                                            <p className="text-[10px] text-muted-foreground mt-1">
-                                                Last updated: {lastUpdated.toLocaleTimeString()}
-                                            </p>
-                                        )}
                                     </div>
                                     <div className="bg-secondary/50 p-4 rounded-xl border border-border/50">
                                         <p className="text-muted-foreground text-sm font-medium mb-1">Market Cap</p>
                                         <p className="text-2xl font-bold">
-                                            ${formatCompactNumber(coinDetails.market_data.market_cap.usd)}
+                                            ${formatCompactNumber(coinDetails.market_cap)}
                                         </p>
                                     </div>
                                 </div>
@@ -129,7 +130,7 @@ export default function CoinPages() {
                                                 {myAsset.amount.toLocaleString()} <span className="text-sm font-medium text-muted-foreground">{coinDetails.symbol.toUpperCase()}</span>
                                             </p>
                                             <p className="text-sm font-medium text-primary">
-                                                ≈ ${(myAsset.amount * coinDetails.market_data.current_price.usd).toLocaleString()}
+                                                ≈ ${(myAsset.amount * coinDetails.current_price).toLocaleString()}
                                             </p>
                                         </div>
                                         <div className="space-y-1">
@@ -144,17 +145,17 @@ export default function CoinPages() {
                                             <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Profit / Loss</p>
                                             <div className={cn(
                                                 "text-2xl font-black flex items-center gap-2",
-                                                (coinDetails.market_data.current_price.usd - myAsset.buyPrice) >= 0 ? "text-emerald-500" : "text-rose-500"
+                                                (coinDetails.current_price - myAsset.buyPrice) >= 0 ? "text-emerald-500" : "text-rose-500"
                                             )}>
-                                                <span>{(coinDetails.market_data.current_price.usd - myAsset.buyPrice) >= 0 ? "+" : "-"}$</span>
-                                                <AnimatedNumber value={Math.abs((coinDetails.market_data.current_price.usd - myAsset.buyPrice) * myAsset.amount)} />
+                                                <span>{(coinDetails.current_price - myAsset.buyPrice) >= 0 ? "+" : "-"}$</span>
+                                                <AnimatedNumber value={Math.abs((coinDetails.current_price - myAsset.buyPrice) * myAsset.amount)} />
                                             </div>
                                             <p className={cn(
                                                 "text-sm font-bold flex items-center gap-1",
-                                                (coinDetails.market_data.current_price.usd - myAsset.buyPrice) >= 0 ? "text-emerald-500/80" : "text-rose-500/80"
+                                                (coinDetails.current_price - myAsset.buyPrice) >= 0 ? "text-emerald-500/80" : "text-rose-500/80"
                                             )}>
-                                                {(coinDetails.market_data.current_price.usd - myAsset.buyPrice) >= 0 ? "▲" : "▼"}
-                                                {Math.abs(((coinDetails.market_data.current_price.usd - myAsset.buyPrice) / myAsset.buyPrice) * 100).toFixed(2)}%
+                                                {(coinDetails.current_price - myAsset.buyPrice) >= 0 ? "▲" : "▼"}
+                                                {Math.abs(((coinDetails.current_price - myAsset.buyPrice) / myAsset.buyPrice) * 100).toFixed(2)}%
                                             </p>
                                         </div>
                                     </div>
@@ -178,17 +179,6 @@ export default function CoinPages() {
                                 </Button>
                             </div>
                         )}
-                        <div className="mt-8 p-2">
-                            <h3 className="text-2xl font-semibold mb-4 border-b border-border pb-2">
-                                About {coinDetails.name}
-                            </h3>
-                            <div
-                                className="text-foreground/80 leading-relaxed text-lg [&_a]:text-blue-500 [&_a]:hover:underline [&_p]:mb-4"
-                                dangerouslySetInnerHTML={{
-                                    __html: coinDetails.description?.en || "No description available."
-                                }}
-                            />
-                        </div>
                     </>
                 )}
             </div>

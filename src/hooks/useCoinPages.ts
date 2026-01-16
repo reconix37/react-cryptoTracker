@@ -1,56 +1,35 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
-import type { CoinDetails } from "../types/Coin";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { usePortfolio } from "./usePortfolio";
+import { useCrypto } from "@/contexts/CryptoProvider";
 
 export function useCoinPages() {
     const { id } = useParams();
-    const [coinDetails, setCoinDetails] = useState<CoinDetails | null>(null);
     const [watchlist, setWatchlist] = useLocalStorage<string[]>("watchlist", []);
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+    const { getCoinById, fetchCoinById, isLoading, error } = useCrypto();
 
-    const lastFetched = useRef(0);
     const { assets } = usePortfolio();
 
-    const fetchCoinDetails = useCallback(async (coinId: string | undefined) => {
-        if (!coinId || isLoading) return;
-
-        const now = Date.now();
-        if (now - lastFetched.current < 30000) return;
-
-        try {
-            setIsLoading(true);
-            setError(null);
-            const response = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}?localization=false&tickers=false&community_data=false&developer_data=false`);
-
-            if (!response.ok) {
-                if (response.status === 429) throw new Error("429");
-                throw new Error("Failed to fetch");
-            }
-
-            const data = await response.json();
-            setCoinDetails(data);
-            setLastUpdated(new Date());
-            lastFetched.current = Date.now();
-        } catch (error: any) {
-            setError(error.message === "429" ? "Rate limit reached" : "Error");
-        } finally {
-            setIsLoading(false);
-        }
-    }, [id]);
+    const coinDetails = id ? getCoinById(id) : undefined;
 
     useEffect(() => {
-        if (id) {
-            fetchCoinDetails(id);
-            const interval = setInterval(() => fetchCoinDetails(id), 120000);
-            return () => clearInterval(interval);
+        if (id && !coinDetails) {
+            fetchCoinById(id)
         }
-    }, [id, fetchCoinDetails]);
+    }, [id, coinDetails]);
+    
+    useEffect(() => {
+        if (coinDetails) {
+            document.title = `${coinDetails.name} (${coinDetails.symbol.toUpperCase()}) | CryptoTracker`;
+        }
+
+        return () => {
+            document.title = "My Portfolio | CryptoTracker";
+        };
+    }, [coinDetails]);
 
     const isInWatchlist = id ? watchlist.includes(id) : false;
 
@@ -75,15 +54,6 @@ export function useCoinPages() {
 
     const myAsset = assets.find((a) => a.id === id)
 
-    useEffect(() => {
-        if (coinDetails) {
-            document.title = `${coinDetails.name} (${coinDetails.symbol.toUpperCase()}) | CryptoTracker`;
-        }
-
-        return () => {
-            document.title = "My Portfolio | CryptoTracker";
-        };
-    }, [coinDetails]);
 
     return {
         coinDetails,
@@ -94,10 +64,9 @@ export function useCoinPages() {
         myAsset,
         watchlist,
         isInWatchlist,
-        lastUpdated,
-        fetchCoinDetails,
         setIsAddDialogOpen,
         toggleWatchlist,
+        fetchCoinById,
         formatCompactNumber
     }
 }
