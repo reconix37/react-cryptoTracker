@@ -15,6 +15,7 @@ import { Alert, AlertTitle } from "@/components/ui/alert";
 import PortfolioSkeleton from "@/components/profile/PortfolioSkeleton";
 import FearGreedWidget from "@/components/profile/FearGreedWidget";
 import { useFearGreed } from "@/hooks/useFearGreed";
+import { useCrypto } from "@/contexts/CryptoProvider";
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('en-US', {
@@ -31,9 +32,9 @@ export default function Profile() {
     assets,
     isLoading,
     error,
+    coins,
     enrichedAssets,
     transactions,
-    allCoins,
     chartData,
     totalBalance,
     bestPerformer,
@@ -47,6 +48,7 @@ export default function Profile() {
   } = usePortfolio();
 
   const { refetch: refetchFearGreed } = useFearGreed();
+  const { lastUpdated } = useCrypto()
 
   const handleGlobalRefetch = async () => {
     await Promise.all([refetch(true), refetchFearGreed(true)]);
@@ -58,9 +60,13 @@ export default function Profile() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">My Portfolio</h1>
-          <p className="text-muted-foreground">Track your crypto assets and performance.</p>
+          <p className="text-muted-foreground">
+            {lastUpdated
+              ? `Last updated: ${lastUpdated.toLocaleTimeString()}`
+              : "Track your crypto assets and performance."}
+          </p>
         </div>
-        <AddAssetDialog onAdd={handleAddAsset} marketData={allCoins} />
+        <AddAssetDialog onAdd={handleAddAsset} marketData={coins} />
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
@@ -121,19 +127,19 @@ export default function Profile() {
 
           <FearGreedWidget />
 
-          <div className="bg-card rounded-xl shadow-md border flex flex-col h-[400px]"> 
+          <div className="bg-card rounded-xl shadow-md border flex flex-col h-[400px]">
             <div className="p-4 border-b bg-muted/20 flex items-center gap-2 shrink-0">
               <History className="h-4 w-4 text-primary" />
               <h3 className="font-bold text-sm uppercase">Activity</h3>
             </div>
             <div className="overflow-y-auto grow">
-              <TransactionHistory transactions={transactions} allCoins={allCoins} />
+              <TransactionHistory transactions={transactions} allCoins={coins} />
             </div>
           </div>
         </motion.div>
 
         <motion.div className="md:col-span-2" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <div className="bg-card p-4 rounded-xl shadow-md border h-full min-h-[450px]"> 
+          <div className="bg-card p-4 rounded-xl shadow-md border h-full min-h-[450px]">
             <PortfolioChart data={chartData} />
           </div>
         </motion.div>

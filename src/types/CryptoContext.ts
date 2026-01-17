@@ -7,10 +7,10 @@ export interface CryptoContext {
     error: string | null;
     lastUpdated: Date | null;
 
-    page: number | null;
+    page: number;
     setPage: React.Dispatch<React.SetStateAction<number>>;
 
-    refreshData: () => Promise<void>;
+    refreshData: (isAutoRefresh?: boolean, customIds?: string[]) => Promise<void>;
 
     getCoinById: (id: string) => Coin | undefined;
 

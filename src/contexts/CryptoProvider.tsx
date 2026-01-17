@@ -1,8 +1,6 @@
-import { useLocalStorage } from "@/hooks/useLocalStorage";
 import type { Coin } from "@/types/Coin";
 import type { CryptoContext } from "@/types/CryptoContext";
-import type { PortfolioAsset } from "@/types/PortfolioAsset";
-import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
 
 const CryptoContext = createContext<CryptoContext | undefined>(undefined);
 
@@ -12,40 +10,52 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
     const [error, setError] = useState<string | null>(null)
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
     const [page, setPage] = useState<number>(1)
-    const [watchlistCoins, setWatchlistCoins] = useLocalStorage<string[]>("watchlist", [])
-    const [portfolioAssets, setPortfolioAssets] = useLocalStorage<PortfolioAsset[]>("portfolio_assets", [])
 
     const lastFetched = useRef<number>(0);
 
-    const assetIdsString = useMemo(() => {
-        const watchlistIds = watchlistCoins;
-        const portfolioIds = portfolioAssets.map(asset => asset.id);
-        const uniqueIds = new Set([...portfolioIds, ...watchlistIds]);
-        return Array.from(uniqueIds).join(",");
+    const updateCoinsState = useCallback((incomingData: Coin[]) => {
+        setCoins(prev => {
 
-    }, [watchlistCoins, portfolioAssets]);
+            const updated = prev.map((item) => {
+                const newData = incomingData.find((d: Coin) => d.id === item.id);
+                return newData ? newData : item
+            });
 
+            const newItems = incomingData.filter(
+                (newItem: Coin) => !prev.some(oldItem => oldItem.id === newItem.id)
+            )
 
-    const fetchMarketData = useCallback(async (isAutoRefresh = false) => {
+            return [...updated, ...newItems];
+        })
+    }, [])
+
+    const fetchMarketData = useCallback(async (isAutoRefresh = false, customIds?: string[]) => {
         if (isAutoRefresh && Date.now() - lastFetched.current < 45000) return;
+
+        const baseUrl = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd`;
+
+        
+        const url = customIds && customIds.length > 0
+            ? `${baseUrl}&ids=${customIds.join(',')}`
+            : `${baseUrl}&order=market_cap_desc&per_page=50&page=${page}`;
 
         setisLoading(true)
         try {
-            const respoonse = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=${page}&sparkline=false`)
-            if (!respoonse.ok) throw new Error('Fetch error');
+            const response = await fetch(url)
+            if (!response.ok) throw new Error('Fetch error');
 
-            const data = await respoonse.json()
-            setCoins(prev => (page === 1 ? data : [...prev, ...data]))
+            const incomingData = await response.json()
+            updateCoinsState(incomingData)
+
             setLastUpdated(new Date)
             lastFetched.current = Date.now();
-
         } catch (error) {
             setError(error instanceof Error ? error.message : "Something went wrong");
         } finally {
             setisLoading(false)
         }
 
-    }, [page])
+    }, [page, updateCoinsState])
 
     const fetchCoinById = useCallback(async (id: string, isAutoRefresh = false) => {
         if (isAutoRefresh && Date.now() - lastFetched.current < 45000) return;
@@ -60,13 +70,8 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
 
             if (!coinData) return;
 
-            setCoins(prev => {
-                const exists = prev.find(c => c.id === coinData.id);
-                if (exists) {
-                    return prev.map(c => c.id === coinData.id ? coinData : c);
-                }
-                return [...prev, coinData];
-            })
+            updateCoinsState(data)
+
             setLastUpdated(new Date)
             lastFetched.current = Date.now();
 
@@ -82,6 +87,7 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
 
         return coinId;
     }
+
 
     const value = {
         coins,
@@ -104,11 +110,11 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
 
 export const useCrypto = () => {
     const context = useContext(CryptoContext);
-    
+
     if (context === undefined) {
         throw new Error("useCrypto must be used within a CryptoProvider");
     }
-    
+
     return context;
 }
 
