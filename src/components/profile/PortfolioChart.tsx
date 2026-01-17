@@ -29,7 +29,7 @@ export default function PortfolioChart({ data }: PortfolioChartProps) {
 
   if (cleanData.length === 0) {
     return (
-      <div className="h-full w-full flex items-center justify-center text-muted-foreground italic">
+      <div className="h-[480px] w-full flex items-center justify-center text-muted-foreground italic">
         No asset data available to display.
       </div>
     );
@@ -37,26 +37,26 @@ export default function PortfolioChart({ data }: PortfolioChartProps) {
 
   if (!data || data.length === 0) {
     return (
-      <div className="h-full w-full flex items-center justify-center text-muted-foreground italic">
+      <div className="h-[480px] w-full flex items-center justify-center text-muted-foreground italic">
         No asset data available to display.
       </div>
     );
   }
 
   return (
-    <div className="h-full w-full flex flex-col">
-      <h3 className="font-bold text-2xl mb-4 text-foreground/90 text-center shrink-0">
+    <div className="w-full h-[480px] flex flex-col">
+      <h3 className="font-bold text-2xl mb-2 text-foreground/90 text-center shrink-0">
         Allocation by Value
       </h3>
-      <div className="flex-1 w-full min-h-0">
+      <div className="flex-1">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
               data={cleanData}
               cx="50%"
-              cy="48%"
-              innerRadius="60%"
-              outerRadius="75%"
+              cy="45%"
+              innerRadius="50%"
+              outerRadius="85%"
               paddingAngle={4}
               dataKey="value"
               stroke="none"
@@ -83,7 +83,7 @@ export default function PortfolioChart({ data }: PortfolioChartProps) {
             />
             <Legend
               verticalAlign="bottom"
-              height={50}
+              height={40}
               iconType="circle"
               iconSize={10}
             />
