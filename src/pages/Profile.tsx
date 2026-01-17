@@ -139,7 +139,7 @@ export default function Profile() {
         </motion.div>
 
         <motion.div className="md:col-span-2" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <div className="bg-card p-4 rounded-xl shadow-md border h-full min-h-[450px]">
+          <div className="bg-card p-6 rounded-xl shadow-md border h-full min-h-[600px] flex items-center justify-center">
             <PortfolioChart data={chartData} />
           </div>
         </motion.div>

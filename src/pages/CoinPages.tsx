@@ -24,7 +24,7 @@ export default function CoinPages() {
     } = useCoinPages()
 
     const {
-        allCoins,
+        coins,
         handleAddAsset
     } = usePortfolio()
 
@@ -186,7 +186,7 @@ export default function CoinPages() {
                 open={isAddDialogOpen}
                 onOpenChange={setIsAddDialogOpen}
                 preselectedAssetId={id}
-                marketData={allCoins}
+                marketData={coins}
                 onAdd={(data) => {
                     handleAddAsset(data);
                     setIsAddDialogOpen(false);
