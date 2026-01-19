@@ -1,34 +1,12 @@
-import {
-    Chart as ChartJS,
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    LineElement,
-    Title,
-    Tooltip,
-    Legend,
-    Filler
-} from 'chart.js';
 import { Line } from 'react-chartjs-2';
-import { useCoinCharts } from "@/hooks/useCoinsChart";
+import { useCoinChart } from "@/hooks/useCoinsChart";
+import type { CoinChartProps } from '@/types/CoinChart';
 
-ChartJS.register(
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    LineElement,
-    Title,
-    Tooltip,
-    Legend,
-    Filler
-);
-
-interface CoinChartProps {
-    coinId: string | undefined;
-}
 
 export default function CoinChart({ coinId }: CoinChartProps) {
-    const { historicData, loading, timeFrame, setTimeFrame } = useCoinCharts(coinId);
+
+    const { historicData, loading, timeFrame, isPriceUp, chartData, options, setTimeFrame } = useCoinChart(coinId);
+
     const timeframeButtonClass = (value: string) =>
         `px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer
     ${timeFrame === value
@@ -36,74 +14,12 @@ export default function CoinChart({ coinId }: CoinChartProps) {
             : 'bg-secondary text-secondary-foreground hover:bg-accent hover:scale-105'
         }`;
 
+
     if (loading || !historicData) return (
         <div className="flex items-center justify-center h-64 bg-card rounded-2xl border border-border">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
         </div>
     );
-
-    const isPriceUp = historicData.length > 0 &&
-        historicData[historicData.length - 1][1] > historicData[0][1];
-
-    const themeColor = isPriceUp ? 'rgb(34, 197, 94)' : 'rgb(239, 68, 68)';
-
-    const chartData = {
-        labels: historicData.map((dataPoint) => {
-            const date = new Date(dataPoint[0]);
-            if (timeFrame === "1") {
-                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            }
-            return date.toLocaleDateString([], { day: '2-digit', month: '2-digit' });
-        }),
-        datasets: [
-            {
-                data: historicData.map((dataPoint) => dataPoint[1]),
-                borderColor: themeColor,
-                backgroundColor: isPriceUp ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                fill: true,
-                tension: 0.4,
-                pointRadius: 0,
-                pointHoverRadius: 6,
-                borderWidth: 2,
-            },
-        ],
-    };
-
-    const options = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { display: false },
-            tooltip: {
-                backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                titleColor: '#fff',
-                bodyColor: '#fff',
-                padding: 12,
-                borderColor: 'rgba(255, 255, 255, 0.1)',
-                borderWidth: 1,
-            }
-        },
-        scales: {
-            x: {
-                grid: { display: false },
-                ticks: {
-                    maxRotation: 0,
-                    autoSkip: true,
-                    maxTicksLimit: 8,
-                    color: '#94a3b8',
-                },
-            },
-            y: {
-                grid: {
-                    color: 'rgba(148, 163, 184, 0.1)',
-                },
-                ticks: {
-                    callback: (value: any) => `$${value.toLocaleString()}`,
-                    color: '#94a3b8',
-                },
-            },
-        },
-    };
 
     return (
         <div className="mt-8 p-6 border border-border rounded-2xl bg-card text-card-foreground shadow-sm">
@@ -127,7 +43,7 @@ export default function CoinChart({ coinId }: CoinChartProps) {
             </div>
 
             <div className="h-80 w-full">
-                <Line options={options as any} data={chartData} />
+                <Line options={options} data={chartData} />
             </div>
         </div>
     );

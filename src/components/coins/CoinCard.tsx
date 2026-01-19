@@ -28,7 +28,7 @@ export default function CoinCard({ coin }: CoinCardProps) {
                         Current Price: $<AnimatedNumber value={coin.current_price} />{" "}
                         <span className={coin.price_change_percentage_24h > 0 ? "text-green-500 text-sm" : "text-red-500 text-sm"}>
                             {coin.price_change_percentage_24h > 0 ? "+" : ""}
-                            {coin.price_change_percentage_24h.toFixed(2)}%
+                            {coin.price_change_percentage_24h?.toFixed(2)}%
                         </span>
                     </p>
                     <p className="text-sm text-muted-foreground">
