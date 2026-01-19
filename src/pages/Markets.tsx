@@ -3,6 +3,7 @@ import CoinCard from "../components/coins/CoinCard";
 import { Button } from "@/components/ui/button";
 import CoinCardSkeleton from "@/components/coins/CoinCardSkeleton";
 import { useMarkets } from "@/hooks/useMarkets";
+import { useCooldown } from "@/hooks/useCoolDown";
 import { motion } from "framer-motion";
 
 function Markets() {
@@ -18,6 +19,16 @@ function Markets() {
     isLoading,
     finalDisplayCoins,
   } = useMarkets();
+
+  const { cooldown, startCooldown, isOnCooldown } = useCooldown(5);
+
+  const handleLoadMore = () => {
+    if (isLoading || isOnCooldown) return;
+    
+    console.log('Load More clicked');
+    setPage((prev) => prev + 1);
+    startCooldown();
+  };
 
   return (
     <div className="min-h-screen flex flex-col w-full items-center justify-start gap-6 bg-background text-foreground p-4 transition-colors duration-300">
@@ -35,8 +46,8 @@ function Markets() {
       <div className="flex gap-4 mb-4">
         <Button
           className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 cursor-pointer ${filter === "all"
-              ? "bg-blue-600 text-white shadow-md scale-105 hover:bg-blue-700"
-              : "bg-secondary text-secondary-foreground hover:bg-accent hover:scale-105"
+            ? "bg-blue-600 text-white shadow-md scale-105 hover:bg-blue-700"
+            : "bg-secondary text-secondary-foreground hover:bg-accent hover:scale-105"
             }`}
           onClick={() => setFilter("all")}
         >
@@ -45,8 +56,8 @@ function Markets() {
 
         <Button
           className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 cursor-pointer ${filter === "watchlist"
-              ? "bg-blue-600 text-white shadow-md scale-105 hover:bg-blue-700"
-              : "bg-secondary text-secondary-foreground hover:bg-accent hover:scale-105"
+            ? "bg-blue-600 text-white shadow-md scale-105 hover:bg-blue-700"
+            : "bg-secondary text-secondary-foreground hover:bg-accent hover:scale-105"
             }`}
           onClick={() => setFilter("watchlist")}
         >
@@ -54,13 +65,13 @@ function Markets() {
         </Button>
       </div>
 
-      {error && finalDisplayCoins.length > 0 && (
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-2 rounded-lg text-sm mb-4"
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg text-sm mb-4 max-w-md text-center font-medium"
         >
-          Using offline data. Live updates are temporarily unavailable.
+          {error}
         </motion.div>
       )}
 
@@ -90,7 +101,7 @@ function Markets() {
           ))
         )}
 
-        {isLoading && page !== null && page > 1 && (
+        {isLoading && page > 1 && (
           <>
             <CoinCardSkeleton />
             <CoinCardSkeleton />
@@ -98,14 +109,31 @@ function Markets() {
         )}
       </div>
 
-      {filter === "all" && !search && !isLoading && (
-        <Button
-          variant="outline"
-          className="mt-4 mb-10 border-border hover:bg-accent cursor-pointer"
-          onClick={() => setPage((prev) => prev + 1)}
-        >
-          Load More
-        </Button>
+      {filter === "all" && !search && (
+        <div className="mt-4 mb-10 h-10 flex flex-col items-center justify-center gap-2">
+          {isLoading && page > 1 ? (
+            <div className="flex flex-col items-center gap-2">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+              <span className="text-sm text-muted-foreground">Loading page {page}...</span>
+            </div>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                className="border-border hover:bg-accent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                onClick={handleLoadMore}
+                disabled={isLoading || isOnCooldown}
+              >
+                {cooldown > 0 ? `Wait ${cooldown}s...` : "Load More"}
+              </Button>
+              {isOnCooldown && (
+                <span className="text-xs text-muted-foreground">
+                  Cooldown to prevent rate limiting
+                </span>
+              )}
+            </>
+          )}
+        </div>
       )}
     </div>
   );
