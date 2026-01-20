@@ -1,50 +1,23 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
-export function useCooldown(initialSeconds: number = 5) {
-    const [cooldown, setCooldown] = useState(0);
-    const cooldownInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+export function useCooldown(seconds: number = 5) {
+    const [timeLeft, setTimeLeft] = useState(0);
 
     useEffect(() => {
-        return () => {
-            if (cooldownInterval.current) {
-                clearInterval(cooldownInterval.current);
-            }
-        };
-    }, []);
+        if (timeLeft <= 0) return;
 
-    const startCooldown = useCallback(() => {
-        setCooldown(initialSeconds);
-
-        if (cooldownInterval.current) {
-            clearInterval(cooldownInterval.current);
-        }
-
-        cooldownInterval.current = setInterval(() => {
-            setCooldown((prev) => {
-                if (prev <= 1) {
-                    if (cooldownInterval.current) {
-                        clearInterval(cooldownInterval.current);
-                        cooldownInterval.current = null;
-                    }
-                    return 0;
-                }
-                return prev - 1;
-            });
+        const interval = setInterval(() => {
+            setTimeLeft((prev) => prev - 1);
         }, 1000);
-    }, [initialSeconds]);
 
-    const resetCooldown = useCallback(() => {
-        setCooldown(0);
-        if (cooldownInterval.current) {
-            clearInterval(cooldownInterval.current);
-            cooldownInterval.current = null;
-        }
-    }, []);
+        return () => clearInterval(interval);
+    }, [timeLeft]);
+
+    const startCooldown = useCallback(() => setTimeLeft(seconds), [seconds]);
 
     return {
-        cooldown,
+        cooldown: timeLeft,
+        isOnCooldown: timeLeft > 0,
         startCooldown,
-        resetCooldown,
-        isOnCooldown: cooldown > 0
     };
 }

@@ -8,47 +8,23 @@ export function useMarkets() {
     const [filter, setFilter] = useState<"all" | "watchlist">("all");
 
     const { isLoading, error, coins, page, setPage, refreshData } = useCrypto();
-    const hasInitialized = useRef(false);
-    const lastPageRef = useRef(1);
 
     useEffect(() => {
-        if (!hasInitialized.current) {
-            hasInitialized.current = true;
-            console.log('Initial load');
-            refreshData();
-        }
-    }, [refreshData]);
+        refreshData();
 
-     useEffect(() => {
-         if (page === 1 && hasInitialized.current) {
-             const interval = setInterval(() => {
-                 console.log('Auto-refresh');
-                 refreshData(true);
-             }, 300000); 
-             return () => clearInterval(interval);
-         }
-     }, [page, refreshData]);
-
-    useEffect(() => {
-        if (!hasInitialized.current) return;
-
-        if (page !== 1) {
-            console.log('Resetting to page 1');
-            lastPageRef.current = 1;
-            setPage(1);
-        }
-    }, [filter, search]);
-
-    useEffect(() => {
-        if (!hasInitialized.current) return;
-        if (page > lastPageRef.current) {
-            console.log(`Loading page ${page}`);
-            lastPageRef.current = page;
-            refreshData();
-        } else if (page < lastPageRef.current) {
-            lastPageRef.current = page;
+        if (page === 1) {
+            const interval = setInterval(() => refreshData(true), 300000);
+            return () => clearInterval(interval);
         }
     }, [page, refreshData]);
+
+    useEffect(() => {
+        if (page !== 1) {
+            setPage(1);
+        } else {
+            refreshData();
+        }
+    }, [filter, search]);
 
     const finalDisplayCoins = useMemo(() => {
         return coins
@@ -59,8 +35,6 @@ export function useMarkets() {
             );
     }, [coins, filter, watchlist, search]);
 
-    
-
     return {
         finalDisplayCoins,
         search,
@@ -69,7 +43,6 @@ export function useMarkets() {
         isLoading,
         watchlist,
         error,
-        refreshData,
         setSearch,
         setFilter,
         setPage,

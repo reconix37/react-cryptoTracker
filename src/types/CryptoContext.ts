@@ -5,7 +5,7 @@ export interface CryptoContext {
     coins: Coin[];
     isLoading: boolean;
     error: string | null;
-    lastUpdated: Date | null;
+    lastUpdated: number | null;
 
     page: number;
     setPage: React.Dispatch<React.SetStateAction<number>>;
