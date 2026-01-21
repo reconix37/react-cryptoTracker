@@ -5,6 +5,7 @@ import CoinCardSkeleton from "@/components/coins/CoinCardSkeleton";
 import { useMarkets } from "@/hooks/useMarkets";
 import { useCooldown } from "@/hooks/useCoolDown";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 function Markets() {
   const {
@@ -18,17 +19,24 @@ function Markets() {
     page,
     isLoading,
     finalDisplayCoins,
+    resetApp,
   } = useMarkets();
 
   const { cooldown, startCooldown, isOnCooldown } = useCooldown(5);
 
   const handleLoadMore = () => {
     if (isLoading || isOnCooldown) return;
-    
+
     console.log('Load More clicked');
     setPage((prev) => prev + 1);
     startCooldown();
   };
+
+  const handleReset = () => {
+    setSearch("")
+    setFilter("all")
+    resetApp()
+  }
 
   return (
     <div className="min-h-screen flex flex-col w-full items-center justify-start gap-6 bg-background text-foreground p-4 transition-colors duration-300">
@@ -43,7 +51,7 @@ function Markets() {
         className="max-w-sm w-full mb-4 bg-card border-border"
       />
 
-      <div className="flex gap-4 mb-4">
+      <div className="flex gap-4 mb-2">
         <Button
           className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 cursor-pointer ${filter === "all"
             ? "bg-blue-600 text-white shadow-md scale-105 hover:bg-blue-700"
@@ -64,6 +72,14 @@ function Markets() {
           Watchlist ({watchlist.length})
         </Button>
       </div>
+      <Button
+        variant="ghost" 
+        size="sm"
+        className="text-muted-foreground hover:text-foreground px-4 py-2"
+        onClick={handleReset}
+      >
+        Reset All
+      </Button>
 
       {error && (
         <motion.div

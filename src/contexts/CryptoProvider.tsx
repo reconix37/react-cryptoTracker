@@ -27,7 +27,7 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
 
     const executeRequest = useCallback(async (requestFn: () => Promise<void>) => {
         if (isFetching.current) return;
-        
+
         const limit = apiGuards.canMakeRequest(lastFetched.current);
         if (!limit.allowed) {
             setError(`Limit! Wait ${limit.waitTime} s.`);
@@ -73,12 +73,20 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
         });
     }, [updateCoinsState, executeRequest]);
 
+    const resetApp = useCallback(() => {
+        abortController.current?.abort();
+        setCoins([])
+        setPage(1)
+        setError(null)
+    }, [])
+
     const value: ICryptoContext = {
         coins,
         isLoading,
         error,
         page,
         setPage,
+        resetApp,
         lastUpdated,
         refreshData: fetchMarketData,
         getCoinById: (id: string) => coins.find(c => c.id === id),

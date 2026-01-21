@@ -7,7 +7,7 @@ export function useMarkets() {
     const [watchlist] = useLocalStorage<string[]>("watchlist", []);
     const [filter, setFilter] = useState<"all" | "watchlist">("all");
 
-    const { isLoading, error, coins, page, setPage, refreshData } = useCrypto();
+    const { isLoading, error, coins, page, setPage, refreshData, resetApp } = useCrypto();
 
     useEffect(() => {
         refreshData();
@@ -46,5 +46,6 @@ export function useMarkets() {
         setSearch,
         setFilter,
         setPage,
+        resetApp,
     };
 }

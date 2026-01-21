@@ -1,7 +1,7 @@
 import type { Coin } from "./Coin";
 
 export interface CryptoContext {
-    
+
     coins: Coin[];
     isLoading: boolean;
     error: string | null;
@@ -9,6 +9,8 @@ export interface CryptoContext {
 
     page: number;
     setPage: React.Dispatch<React.SetStateAction<number>>;
+
+    resetApp: () => void;
 
     refreshData: (isAutoRefresh?: boolean, customIds?: string[]) => Promise<void>;
 
