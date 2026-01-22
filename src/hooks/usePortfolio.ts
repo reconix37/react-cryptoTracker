@@ -25,30 +25,45 @@ export function usePortfolio() {
   }, [assetIds, refreshData]);
 
   useEffect(() => {
-    const missingCoins = assets
-      .filter(asset => !coins.some(c => c.id === asset.id))
-      .filter(asset => !extraCoins.some(c => c.id === asset.id))
+    if (!coins) return;
+
+    const missingCoins = assets.filter(asset => {
+      const inMainList = coins.some(c => c && c.id === asset.id);
+      const inExtraList = extraCoins.some(c => c && c.id === asset.id);
+
+      return !inMainList && !inExtraList;
+    });
+
     const loadMissing = async () => {
       if (missingCoins.length === 0) return;
 
       const promises = missingCoins.map(asset => fetchCoinById(asset.id));
-
       const promisesResults = await Promise.all(promises);
 
-      const validResults = promisesResults.filter((c): c is Coin => c !== null)
+      const validResults = promisesResults.filter((c): c is Coin =>
+        c !== null && c !== undefined && typeof c === 'object' && 'id' in c
+      );
 
-      setExtraCoins(prev => [...prev, ...validResults])
-    }
+      if (validResults.length > 0) {
+        setExtraCoins(prev => [...prev, ...validResults]);
+      }
+    };
 
     loadMissing();
-  }, [assets, coins])
+  }, [assets, coins, extraCoins, fetchCoinById]);
 
   const coinsMap = useMemo(() => {
     const map = new Map<string, Coin>();
-    coins.forEach(c => map.set(c.id, c));
-    extraCoins.forEach(c => map.set(c.id, c))
-    return map;
 
+    coins?.forEach(c => {
+      if (c && c.id) map.set(c.id, c);
+    });
+
+    extraCoins?.forEach(c => {
+      if (c && c.id) map.set(c.id, c);
+    });
+
+    return map;
   }, [coins, extraCoins]);
 
   const enrichedAssets = useMemo(() => {
