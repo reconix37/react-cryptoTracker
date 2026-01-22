@@ -40,6 +40,7 @@ export default function Profile() {
     bestPerformer,
     worstPerformer,
     searchQuery,
+    share,
     totalProfitData,
     setSearchQuery,
     handleAddAsset,
@@ -49,6 +50,8 @@ export default function Profile() {
 
   const { refetch: refetchFearGreed } = useFearGreed();
   const { lastUpdated } = useCrypto()
+  const formatted = new Date(lastUpdated ?? Date.now()).toLocaleTimeString();
+
 
   const handleGlobalRefetch = async () => {
     await Promise.all([refetch(true), refetchFearGreed(true)]);
@@ -62,11 +65,11 @@ export default function Profile() {
           <h1 className="text-3xl font-bold tracking-tight">My Portfolio</h1>
           <p className="text-muted-foreground">
             {lastUpdated
-              ? `Last updated: ${lastUpdated.toLocaleTimeString()}`
+              ? `Last updated: ${formatted}`
               : "Track your crypto assets and performance."}
           </p>
         </div>
-        <AddAssetDialog onAdd={handleAddAsset} marketData={coins} />
+        <AddAssetDialog onAdd={handleAddAsset} marketData={coins} isLoading={isLoading} />
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
@@ -127,7 +130,7 @@ export default function Profile() {
 
           <FearGreedWidget />
 
-          <div className="bg-card rounded-xl shadow-md border flex flex-col h-[400px]">
+          <div className="bg-card rounded-xl shadow-md border flex flex-col h-100">
             <div className="p-4 border-b bg-muted/20 flex items-center gap-2 shrink-0">
               <History className="h-4 w-4 text-primary" />
               <h3 className="font-bold text-sm uppercase">Activity</h3>
@@ -218,7 +221,7 @@ export default function Profile() {
                       <div className="w-24 bg-muted h-1 rounded-full overflow-hidden mt-1">
                         <motion.div
                           initial={{ width: 0 }}
-                          animate={{ width: `${Math.min(asset.share, 100)}%` }}
+                          animate={{ width: `${Math.min(share[asset.id] ?? 0, 100)}%` }}
                           className="bg-primary h-full"
                         />
                       </div>

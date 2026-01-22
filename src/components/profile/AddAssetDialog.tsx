@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label"
 import { Button } from "../ui/button"
 import { useEffect, useMemo, useState } from "react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { ChevronsUpDown, Check, Plus } from "lucide-react"
+import { ChevronsUpDown, Check, Plus, RefreshCw } from "lucide-react"
 import { CommandList, Command, CommandInput, CommandEmpty, CommandItem, CommandGroup } from "@/components/ui/command"
 import { cn } from "@/lib/utils"
 import type { Coin } from "@/types/Coin"
@@ -15,6 +15,7 @@ interface AddAssetDialogProps {
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
     preselectedAssetId?: string;
+    isLoading: boolean;
 }
 
 export default function AddAssetDialog({
@@ -22,7 +23,8 @@ export default function AddAssetDialog({
     marketData,
     open: controlledOpen,
     onOpenChange,
-    preselectedAssetId
+    preselectedAssetId,
+    isLoading
 }: AddAssetDialogProps) {
 
     const [internalOpen, setInternalOpen] = useState(false);
@@ -81,8 +83,18 @@ export default function AddAssetDialog({
         <Dialog open={isOpen} onOpenChange={setOpen}>
             {!preselectedAssetId && (
                 <DialogTrigger asChild>
-                    <Button variant="outline">
-                        <Plus className="mr-2 h-4 w-4" /> Add Asset
+                    <Button variant="outline" disabled={isLoading}>
+                        {isLoading ? (
+                            <>
+                                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                                Updating...
+                            </>
+                        ) : (
+                            <>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add Asset
+                            </>
+                        )}
                     </Button>
                 </DialogTrigger>
             )}

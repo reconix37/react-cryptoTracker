@@ -4,13 +4,15 @@ import type { PortfolioAsset } from "@/types/PortfolioAsset";
 import { toast } from "sonner";
 import type { AssetsTransactions } from "@/types/PortfolioAsset";
 import { useCrypto } from "@/contexts/CryptoProvider";
+import type { Coin } from "@/types/Coin";
 
 
 export function usePortfolio() {
   const [assets, setAssets] = useLocalStorage<PortfolioAsset[]>("portfolio_assets", []);
   const [transactions, setTransactions] = useLocalStorage<AssetsTransactions[]>("assets_transactions", []);
   const [searchQuery, setSearchQuery] = useState("");
-  const { error, isLoading, coins, refreshData } = useCrypto()
+  const { error, isLoading, coins, refreshData, fetchCoinById } = useCrypto()
+  const [extraCoins, setExtraCoins] = useState<Coin[]>([])
 
   const assetIds = useMemo(() => assets.map(a => a.id), [assets]);
 
@@ -22,25 +24,40 @@ export function usePortfolio() {
     }
   }, [assetIds, refreshData]);
 
+  useEffect(() => {
+    const missingCoins = assets
+      .filter(asset => !coins.some(c => c.id === asset.id))
+      .filter(asset => !extraCoins.some(c => c.id === asset.id))
+    const loadMissing = async () => {
+      if (missingCoins.length === 0) return;
 
-  const { totalBalance, totalCost } = useMemo(() => {
-    let balance = 0, cost = 0;
-    assets.forEach(asset => {
-      const coin = coins.find(c => c.id === asset.id)
-      balance += coin ? coin.current_price * asset.amount : 0;
-      cost += asset.amount * asset.buyPrice;
-    });
-    return { totalBalance: balance, totalCost: cost };
-  }, [assets, coins]);
+      const promises = missingCoins.map(asset => fetchCoinById(asset.id));
+
+      const promisesResults = await Promise.all(promises);
+
+      const validResults = promisesResults.filter((c): c is Coin => c !== null)
+
+      setExtraCoins(prev => [...prev, ...validResults])
+    }
+
+    loadMissing();
+  }, [assets, coins])
+
+  const coinsMap = useMemo(() => {
+    const map = new Map<string, Coin>();
+    coins.forEach(c => map.set(c.id, c));
+    extraCoins.forEach(c => map.set(c.id, c))
+    return map;
+
+  }, [coins, extraCoins]);
 
   const enrichedAssets = useMemo(() => {
     return assets
       .filter(asset => asset.id.toLowerCase().includes(searchQuery.toLowerCase()))
       .map(asset => {
-
-        const coin = coins.find(c => c.id === asset.id)
-        const currentPrice = coin?.current_price || 0;
-        const value = currentPrice * asset.amount;
+        const coin = coinsMap.get(asset.id)
+        const currentPrice = coin?.current_price || asset.buyPrice;
+        const totalValue = currentPrice * asset.amount;
         const profit = (currentPrice - asset.buyPrice) * asset.amount;
 
         return {
@@ -49,14 +66,32 @@ export function usePortfolio() {
           symbol: coin?.symbol || "",
           image: coin?.image || null,
           currentPrice,
-          totalValue: value,
+          totalValue,
           profit,
           profitPercent: asset.buyPrice > 0 ? ((currentPrice - asset.buyPrice) / asset.buyPrice) * 100 : 0,
-          share: totalBalance > 0 ? (value / totalBalance) * 100 : 0,
           isProfit: profit >= 0
         };
-      }).sort((a, b) => b.totalValue - a.totalValue);
-  }, [assets, coins, searchQuery, totalBalance]);
+      })
+      .sort((a, b) => b.totalValue - a.totalValue);
+  }, [assets, coinsMap, searchQuery]);
+
+  const { totalBalance, totalCost } = useMemo(() => {
+    return enrichedAssets.reduce((acc, curr) => ({
+      totalBalance: acc.totalBalance + curr.totalValue,
+      totalCost: acc.totalCost + (curr.amount * curr.buyPrice)
+    }), { totalBalance: 0, totalCost: 0 });
+  }, [enrichedAssets]);
+
+  const share = useMemo(() => {
+    const result: Record<string, number> = {};
+
+    enrichedAssets.forEach(asset => {
+      result[asset.id] =
+        totalBalance > 0 ? (asset.totalValue / totalBalance) * 100 : 0;
+    });
+
+    return result;
+  }, [enrichedAssets, totalBalance]);
 
   const performingAssets = useMemo(() =>
     enrichedAssets.filter(a => a.currentPrice > 0 && a.profitPercent !== 0),
@@ -116,7 +151,7 @@ export function usePortfolio() {
 
   return {
     assets, isLoading, error, enrichedAssets, transactions, coins,
-    totalBalance,
+    totalBalance, share,
     bestPerformer: performingAssets.length > 0
       ? [...performingAssets].sort((a, b) => b.profitPercent - a.profitPercent)[0]
       : null,

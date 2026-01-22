@@ -25,7 +25,7 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
         setLastUpdated(Date.now());
     }, []);
 
-    const executeRequest = useCallback(async (requestFn: () => Promise<void>) => {
+    const executeRequest = useCallback(async <T,>(requestFn: () => Promise<T>) => {
         if (isFetching.current) return;
 
         const limit = apiGuards.canMakeRequest(lastFetched.current);
@@ -42,8 +42,9 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
         setError(null);
 
         try {
-            await requestFn();
+            const result = await requestFn();
             lastFetched.current = Date.now();
+            return result
         } catch (err: any) {
             if (err.name === 'AbortError') return;
             setError(err.message === 'RATE_LIMIT' ? "Too many requests" : "Network error");
@@ -67,9 +68,13 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
     }, [page, updateCoinsState, executeRequest]);
 
     const fetchCoinById = useCallback(async (id: string) => {
-        await executeRequest(async () => {
+        return await executeRequest(async () => {
             const data = await fetchCoinGecko('coins/markets', { vs_currency: 'usd', ids: id }, abortController.current?.signal);
-            if (data[0]) updateCoinsState(data, 1);
+            if (data && data[0]) {
+                updateCoinsState(data, 1);
+                return data[0];
+            }
+            return null;
         });
     }, [updateCoinsState, executeRequest]);
 
