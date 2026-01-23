@@ -69,7 +69,7 @@ export default function Profile() {
               : "Track your crypto assets and performance."}
           </p>
         </div>
-        <AddAssetDialog onAdd={handleAddAsset} marketData={coins} isLoading={isLoading} />
+        <AddAssetDialog onAdd={handleAddAsset} marketData={coins || []} isLoading={isLoading} />
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
@@ -142,7 +142,7 @@ export default function Profile() {
         </motion.div>
 
         <motion.div className="md:col-span-2" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          
+
           <div className="bg-card p-6 rounded-xl shadow-md border h-full min-h-[600px] flex items-center justify-center">
             <PortfolioChart data={chartData} />
           </div>
@@ -234,13 +234,25 @@ export default function Profile() {
                         <p className="font-bold text-base sm:text-lg">{formatCurrency(asset.totalValue)}</p>
                         <p className={cn(
                           "text-[10px] sm:text-xs font-bold px-1.5 py-0.5 rounded",
-                          asset.isProfit ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"
+                          asset.isPriceLoading
+                            ? "bg-muted text-muted-foreground"
+                            : asset.isProfit ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"
                         )}>
-                          {asset.isProfit ? "+" : ""}{asset.profitPercent.toFixed(2)}%
+                          {asset.isPriceLoading ? "..." : `${asset.isProfit ? "+" : ""}${asset.profitPercent.toFixed(2)}%`}
                         </p>
                       </div>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded mt-1 inline-block">
-                        {formatCurrency(asset.currentPrice)} / unit
+                      <p className="text-[10px] sm:text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded mt-1 inline-flex items-center gap-1.5">
+                        {asset.isPriceLoading ? (
+                          <>
+                            <RefreshCw className="h-3 w-3 animate-spin" />
+                            <span>Loading price...</span>
+                          </>
+                        ) : (
+                          <>
+                            {formatCurrency(asset.currentPrice)}
+                            <span className="opacity-70 ml-0.5">/ unit</span>
+                          </>
+                        )}
                       </p>
                     </div>
 

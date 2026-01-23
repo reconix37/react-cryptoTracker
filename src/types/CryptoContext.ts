@@ -17,4 +17,7 @@ export interface CryptoContext {
     getCoinById: (id: string) => Coin | undefined;
 
     fetchCoinById: (id: string) => Promise<Coin | null>;
+    
+    fetchExtraCoinsByIds(ids: string): Promise<Coin[]>
+
 }

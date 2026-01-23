@@ -15,6 +15,8 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
     const lastFetched = useRef<number>(0);
     const isFetching = useRef(false);
     const abortController = useRef<AbortController | null>(null);
+    const errorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
 
     const updateCoinsState = useCallback((incomingData: Coin[], currentPage: number) => {
         setCoins(prev => {
@@ -31,6 +33,12 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
         const limit = apiGuards.canMakeRequest(lastFetched.current);
         if (!limit.allowed) {
             setError(`Limit! Wait ${limit.waitTime} s.`);
+
+            clearTimeout(errorTimeoutRef.current!);
+            errorTimeoutRef.current = setTimeout(
+                () => setError(null),
+                limit.waitTime ? limit.waitTime * 1000 : 0
+            );
             return;
         }
 
@@ -78,6 +86,24 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
         });
     }, [updateCoinsState, executeRequest]);
 
+    const fetchExtraCoinsByIds = useCallback(
+        async (ids: string): Promise<Coin[]> => {
+            const result = await executeRequest(async () => {
+                const data = await fetchCoinGecko(
+                    'coins/markets',
+                    { vs_currency: 'usd', ids },
+                    abortController.current?.signal
+                );
+
+                updateCoinsState(data, 1);
+                return data as Coin[];
+            });
+            return result ?? [];
+        },
+        [executeRequest, updateCoinsState]
+    );
+
+
     const resetApp = useCallback(() => {
         abortController.current?.abort();
         setCoins([])
@@ -96,6 +122,7 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
         refreshData: fetchMarketData,
         getCoinById: (id: string) => coins.find(c => c.id === id),
         fetchCoinById,
+        fetchExtraCoinsByIds,
     };
 
     return <CryptoContext.Provider value={value}>{children}</CryptoContext.Provider>;

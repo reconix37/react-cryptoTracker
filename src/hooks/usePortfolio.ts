@@ -11,46 +11,61 @@ export function usePortfolio() {
   const [assets, setAssets] = useLocalStorage<PortfolioAsset[]>("portfolio_assets", []);
   const [transactions, setTransactions] = useLocalStorage<AssetsTransactions[]>("assets_transactions", []);
   const [searchQuery, setSearchQuery] = useState("");
-  const { error, isLoading, coins, refreshData, fetchCoinById } = useCrypto()
+  const { error, isLoading, coins, refreshData, fetchExtraCoinsByIds } = useCrypto()
   const [extraCoins, setExtraCoins] = useState<Coin[]>([])
+  const [failedIds, setFailedIds] = useState<Set<string>>(new Set());
 
   const assetIds = useMemo(() => assets.map(a => a.id), [assets]);
 
   useEffect(() => {
-    if (assetIds.length > 0) {
-      refreshData(true, assetIds);
-    } else {
-      refreshData();
-    }
-  }, [assetIds, refreshData]);
+    const loadData = async () => {
+      if (assetIds.length > 0) {
+        await refreshData(true, assetIds);
+      } else {
+        await refreshData();
+      }
+    };
+    loadData();
+  }, [assetIds.join(','), refreshData]);
 
   useEffect(() => {
     if (!coins) return;
 
     const missingCoins = assets.filter(asset => {
-      const inMainList = coins.some(c => c && c.id === asset.id);
-      const inExtraList = extraCoins.some(c => c && c.id === asset.id);
+      const inMain = coins.some(c => c.id === asset.id);
+      const inExtra = extraCoins.some(c => c.id === asset.id);
+      const failed = failedIds.has(asset.id);
 
-      return !inMainList && !inExtraList;
+      return !inMain && !inExtra && !failed;
     });
 
+    if (missingCoins.length === 0) return;
+
+    const missingIds = missingCoins.map(a => a.id).join(",");
+    if (!missingIds) return;
+
     const loadMissing = async () => {
-      if (missingCoins.length === 0) return;
+      const result = await fetchExtraCoinsByIds(missingIds);
+      const returnedIds = new Set(result.map(c => c.id));
 
-      const promises = missingCoins.map(asset => fetchCoinById(asset.id));
-      const promisesResults = await Promise.all(promises);
+      if (result.length > 0) {
+        setExtraCoins(prev => [...prev, ...result]);
+      }
+      const failed = missingCoins
+        .map(a => a.id)
+        .filter(id => !returnedIds.has(id));
 
-      const validResults = promisesResults.filter((c): c is Coin =>
-        c !== null && c !== undefined && typeof c === 'object' && 'id' in c
-      );
-
-      if (validResults.length > 0) {
-        setExtraCoins(prev => [...prev, ...validResults]);
+      if (failed.length > 0) {
+        setFailedIds(prev => {
+          const next = new Set(prev);
+          failed.forEach(id => next.add(id));
+          return next;
+        });
       }
     };
 
     loadMissing();
-  }, [assets, coins, extraCoins, fetchCoinById]);
+  }, [assets, coins, extraCoins, failedIds, fetchExtraCoinsByIds]);
 
   const coinsMap = useMemo(() => {
     const map = new Map<string, Coin>();
@@ -71,6 +86,8 @@ export function usePortfolio() {
       .filter(asset => asset.id.toLowerCase().includes(searchQuery.toLowerCase()))
       .map(asset => {
         const coin = coinsMap.get(asset.id)
+        const isPriceLoading = !coin && isLoading;
+
         const currentPrice = coin?.current_price || asset.buyPrice;
         const totalValue = currentPrice * asset.amount;
         const profit = (currentPrice - asset.buyPrice) * asset.amount;
@@ -84,10 +101,11 @@ export function usePortfolio() {
           totalValue,
           profit,
           profitPercent: asset.buyPrice > 0 ? ((currentPrice - asset.buyPrice) / asset.buyPrice) * 100 : 0,
-          isProfit: profit >= 0
+          isProfit: profit >= 0,
+          isPriceLoading
         };
       })
-      .sort((a, b) => b.totalValue - a.totalValue);
+      .sort((a, b) => a.id.localeCompare(b.id));
   }, [assets, coinsMap, searchQuery]);
 
   const { totalBalance, totalCost } = useMemo(() => {
