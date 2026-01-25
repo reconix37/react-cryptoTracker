@@ -2,19 +2,21 @@ import { useState, useEffect, useMemo, } from "react";
 import { useLocalStorage } from "./useLocalStorage";
 import type { PortfolioAsset } from "@/types/PortfolioAsset";
 import { toast } from "sonner";
-import type { AssetsTransactions } from "@/types/PortfolioAsset";
 import { useCrypto } from "@/contexts/CryptoProvider";
 import type { Coin } from "@/types/Coin";
 import { STORAGE_KEYS } from "@/configs/constants"
+import useTransactions from "./useTransactions";
+import { calculatePortfolioStats, enrichAssetData } from "@/utils/portfolioMath";
 
 
 export function usePortfolio() {
   const [assets, setAssets] = useLocalStorage<PortfolioAsset[]>(STORAGE_KEYS.ASSETS, []);
-  const [transactions, setTransactions] = useLocalStorage<AssetsTransactions[]>(STORAGE_KEYS.TRANSACTIONS, []);
   const [searchQuery, setSearchQuery] = useState("");
   const { error, isLoading, coins, refreshData, fetchExtraCoinsByIds } = useCrypto()
   const [extraCoins, setExtraCoins] = useState<Coin[]>([])
   const [failedIds, setFailedIds] = useState<Set<string>>(new Set());
+
+  const { transactions, addTransaction } = useTransactions();
 
   const assetIds = useMemo(() => assets.map(a => a.id), [assets]);
 
@@ -70,66 +72,27 @@ export function usePortfolio() {
 
   const coinsMap = useMemo(() => {
     const map = new Map<string, Coin>();
-
-    coins?.forEach(c => {
-      if (c && c.id) map.set(c.id, c);
-    });
-
-    extraCoins?.forEach(c => {
-      if (c && c.id) map.set(c.id, c);
-    });
-
+    coins?.forEach(c => c?.id && map.set(c.id, c));
+    extraCoins?.forEach(c => c?.id && map.set(c.id, c));
     return map;
   }, [coins, extraCoins]);
 
   const enrichedAssets = useMemo(() => {
     return assets
       .filter(asset => asset.id.toLowerCase().includes(searchQuery.toLowerCase()))
-      .map(asset => {
-        const coin = coinsMap.get(asset.id)
-        const isPriceLoading = !coin && isLoading;
-
-        const currentPrice = coin?.current_price || asset.buyPrice;
-        const totalValue = currentPrice * asset.amount;
-        const profit = (currentPrice - asset.buyPrice) * asset.amount;
-
-        return {
-          ...asset,
-          name: coin?.name || asset.id,
-          symbol: coin?.symbol || "",
-          image: coin?.image || null,
-          currentPrice,
-          totalValue,
-          profit,
-          profitPercent: asset.buyPrice > 0 ? ((currentPrice - asset.buyPrice) / asset.buyPrice) * 100 : 0,
-          isProfit: profit >= 0,
-          isPriceLoading
-        };
-      })
+      .map(asset => enrichAssetData(asset, coinsMap.get(asset.id), isLoading))
       .sort((a, b) => a.id.localeCompare(b.id));
-  }, [assets, coinsMap, searchQuery]);
+  }, [assets, coinsMap, searchQuery, isLoading]);
 
-  const { totalBalance, totalCost } = useMemo(() => {
-    return enrichedAssets.reduce((acc, curr) => ({
-      totalBalance: acc.totalBalance + curr.totalValue,
-      totalCost: acc.totalCost + (curr.amount * curr.buyPrice)
-    }), { totalBalance: 0, totalCost: 0 });
-  }, [enrichedAssets]);
+  const stats = useMemo(() => calculatePortfolioStats(enrichedAssets), [enrichedAssets]);
 
   const share = useMemo(() => {
     const result: Record<string, number> = {};
-
     enrichedAssets.forEach(asset => {
-      result[asset.id] =
-        totalBalance > 0 ? (asset.totalValue / totalBalance) * 100 : 0;
+      result[asset.id] = stats.totalBalance > 0 ? (asset.totalValue / stats.totalBalance) * 100 : 0;
     });
-
     return result;
-  }, [enrichedAssets, totalBalance]);
-
-  const performingAssets = useMemo(() =>
-    enrichedAssets.filter(a => a.currentPrice > 0 && a.profitPercent !== 0),
-    [enrichedAssets]);
+  }, [enrichedAssets, stats.totalBalance]);
 
   const handleAddAsset = (newAsset: PortfolioAsset) => {
     setAssets(prev => {
@@ -147,14 +110,7 @@ export function usePortfolio() {
       return [...prev, newAsset];
     });
 
-    const trans: AssetsTransactions = {
-      ...newAsset,
-      coinId: newAsset.id,
-      id: crypto.randomUUID(),
-      date: Date.now(),
-      type: "buy"
-    };
-    setTransactions(p => [trans, ...p]);
+    addTransaction(newAsset, "buy")
     toast.success(`Added ${newAsset.id}`);
   };
 
@@ -164,41 +120,33 @@ export function usePortfolio() {
 
     if (asset) {
 
-      const sellTransaction: AssetsTransactions = {
-        id: crypto.randomUUID(),
-        coinId: asset.id,
-        amount: asset.amount,
-
-        buyPrice: enriched?.currentPrice || asset.buyPrice,
-        date: Date.now(),
-        type: "sell"
-      };
-      setTransactions(prev => [sellTransaction, ...prev]);
-
+      addTransaction(asset, "sell", enriched?.currentPrice);
       setAssets(prev => prev.filter(a => a.id !== id));
 
       toast.error(`Sold and removed ${id.toUpperCase()}`);
     }
   };
 
-
-
   return {
-    assets, isLoading, error, enrichedAssets, transactions, coins,
-    totalBalance, share,
-    bestPerformer: performingAssets.length > 0
-      ? [...performingAssets].sort((a, b) => b.profitPercent - a.profitPercent)[0]
-      : null,
-    worstPerformer: performingAssets.length > 0
-      ? [...performingAssets].sort((a, b) => a.profitPercent - b.profitPercent)[0]
-      : null,
+    assets,
+    isLoading,
+    error,
+    enrichedAssets,
+    transactions,
+    coins,
+    share,
+    searchQuery,
+    setSearchQuery,
+    handleAddAsset,
+    handleDelete,
+    ...stats,
     totalProfitData: {
-      profit: totalBalance - totalCost,
-      percentage: totalCost > 0 ? ((totalBalance - totalCost) / totalCost) * 100 : 0,
-      isProfit: (totalBalance - totalCost) >= 0
+      profit: stats.totalProfit,
+      percentage: stats.totalProfitPercent,
+      isProfit: stats.totalProfit >= 0
     },
     chartData: enrichedAssets.map(a => ({ name: a.name, value: a.totalValue })).filter(v => v.value > 0),
-    searchQuery, setSearchQuery, handleAddAsset, handleDelete,
     refetch: (force = false) => Promise.all([refreshData(force)]),
   };
 }
+
