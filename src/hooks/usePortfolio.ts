@@ -198,6 +198,6 @@ export function usePortfolio() {
     },
     chartData: enrichedAssets.map(a => ({ name: a.name, value: a.totalValue })).filter(v => v.value > 0),
     searchQuery, setSearchQuery, handleAddAsset, handleDelete,
-    refetch: (force = false) => Promise.all([refreshData()]),
+    refetch: (force = false) => Promise.all([refreshData(force)]),
   };
 }

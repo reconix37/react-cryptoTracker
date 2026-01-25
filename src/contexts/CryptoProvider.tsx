@@ -4,6 +4,7 @@ import type { Coin } from "@/types/Coin";
 import type { CryptoContext as ICryptoContext } from "@/types/CryptoContext";
 
 const CryptoContext = createContext<ICryptoContext | undefined>(undefined);
+const CACHE_TIME = 60000
 
 export default function CryptoProvider({ children }: { children: ReactNode }) {
     const [coins, setCoins] = useState<Coin[]>([]);
@@ -16,6 +17,7 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
     const isFetching = useRef(false);
     const abortController = useRef<AbortController | null>(null);
     const errorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const lastPageRef = useRef<number>(page)
 
 
     const updateCoinsState = useCallback((incomingData: Coin[], currentPage: number) => {
@@ -62,8 +64,15 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
-    const fetchMarketData = useCallback(async () => {
-        console.log("Fetching page:", page);
+    const fetchMarketData = useCallback(async (force = false) => {
+        const isFresh = lastUpdated && (Date.now() - lastUpdated < CACHE_TIME);
+        const isSamePage = page === lastPageRef.current;
+
+        if (isFresh && !force && isSamePage) {
+            console.log("Using cache for page:", page);
+            return;
+        }
+
         await executeRequest(async () => {
             const params = {
                 vs_currency: 'usd',
@@ -72,8 +81,9 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
             };
             const data = await fetchCoinGecko('coins/markets', params, abortController.current?.signal);
             updateCoinsState(data, page);
+            lastPageRef.current = page;
         });
-    }, [page, updateCoinsState, executeRequest]);
+    }, [page, lastUpdated, updateCoinsState, executeRequest]);
 
     const fetchCoinById = useCallback(async (id: string) => {
         return await executeRequest(async () => {
