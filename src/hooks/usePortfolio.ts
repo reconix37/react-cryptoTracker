@@ -21,6 +21,10 @@ export function usePortfolio() {
   const assetIds = useMemo(() => assets.map(a => a.id), [assets]);
 
   useEffect(() => {
+    document.title = "My Portfolio | CryptoTracker";
+  },[]);
+
+  useEffect(() => {
     const loadData = async () => {
       if (assetIds.length > 0) {
         await refreshData(true, assetIds);

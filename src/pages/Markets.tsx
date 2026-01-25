@@ -5,7 +5,6 @@ import CoinCardSkeleton from "@/components/coins/CoinCardSkeleton";
 import { useMarkets } from "@/hooks/useMarkets";
 import { useCooldown } from "@/hooks/useCoolDown";
 import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
 
 function Markets() {
   const {

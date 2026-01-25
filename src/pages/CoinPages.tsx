@@ -190,8 +190,7 @@ export default function CoinPages() {
                 onAdd={(data) => {
                     handleAddAsset(data);
                     setIsAddDialogOpen(false);
-                }}
-            />
+                } } isLoading={false}            />
         </div>
     )
 }

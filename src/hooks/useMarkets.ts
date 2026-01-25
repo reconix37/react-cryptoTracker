@@ -10,6 +10,10 @@ export function useMarkets() {
     const { isLoading, error, coins, page, setPage, refreshData, resetApp } = useCrypto();
 
     useEffect(() => {
+        document.title = "Markets | CryptoTracker";
+    }, []);
+
+    useEffect(() => {
         refreshData();
 
         if (page === 1) {
