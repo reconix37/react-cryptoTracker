@@ -2,9 +2,9 @@ import { useState, useCallback, useRef, createContext, useContext, type ReactNod
 import { fetchCoinGecko, apiGuards } from "@/services/api";
 import type { Coin } from "@/types/Coin";
 import type { CryptoContext as ICryptoContext } from "@/types/CryptoContext";
+import { CACHE_CONFIG, MARKET_CONFIG, API_CONFIG } from "@/configs/constants";
 
 const CryptoContext = createContext<ICryptoContext | undefined>(undefined);
-const CACHE_TIME = 60000
 
 export default function CryptoProvider({ children }: { children: ReactNode }) {
     const [coins, setCoins] = useState<Coin[]>([]);
@@ -39,7 +39,7 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
             clearTimeout(errorTimeoutRef.current!);
             errorTimeoutRef.current = setTimeout(
                 () => setError(null),
-                limit.waitTime ? limit.waitTime * 1000 : 0
+                limit.waitTime ? limit.waitTime * 1000 : CACHE_CONFIG.DEFAULT_ERROR_DELAY
             );
             return;
         }
@@ -65,7 +65,7 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const fetchMarketData = useCallback(async (force = false) => {
-        const isFresh = lastUpdated && (Date.now() - lastUpdated < CACHE_TIME);
+        const isFresh = lastUpdated && (Date.now() - lastUpdated < CACHE_CONFIG.MARKET_DATA_TTL);
         const isSamePage = page === lastPageRef.current;
 
         if (isFresh && !force && isSamePage) {
@@ -75,11 +75,11 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
 
         await executeRequest(async () => {
             const params = {
-                vs_currency: 'usd',
-                per_page: '10',
+                vs_currency: MARKET_CONFIG.DEFAULT_CURRENCY,
+                per_page: MARKET_CONFIG.PER_PAGE.toString(),
                 page: page.toString(),
             };
-            const data = await fetchCoinGecko('coins/markets', params, abortController.current?.signal);
+            const data = await fetchCoinGecko(API_CONFIG.ENDPOINT, params, abortController.current?.signal);
             updateCoinsState(data, page);
             lastPageRef.current = page;
         });
@@ -87,7 +87,7 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
 
     const fetchCoinById = useCallback(async (id: string) => {
         return await executeRequest(async () => {
-            const data = await fetchCoinGecko('coins/markets', { vs_currency: 'usd', ids: id }, abortController.current?.signal);
+            const data = await fetchCoinGecko(API_CONFIG.ENDPOINT, { vs_currency: MARKET_CONFIG.DEFAULT_CURRENCY, ids: id }, abortController.current?.signal);
             if (data && data[0]) {
                 updateCoinsState(data, 1);
                 return data[0];
@@ -100,8 +100,8 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
         async (ids: string): Promise<Coin[]> => {
             const result = await executeRequest(async () => {
                 const data = await fetchCoinGecko(
-                    'coins/markets',
-                    { vs_currency: 'usd', ids },
+                    API_CONFIG.ENDPOINT,
+                    { vs_currency: MARKET_CONFIG.DEFAULT_CURRENCY, ids },
                     abortController.current?.signal
                 );
 

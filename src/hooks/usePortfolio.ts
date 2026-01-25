@@ -5,11 +5,12 @@ import { toast } from "sonner";
 import type { AssetsTransactions } from "@/types/PortfolioAsset";
 import { useCrypto } from "@/contexts/CryptoProvider";
 import type { Coin } from "@/types/Coin";
+import { STORAGE_KEYS } from "@/configs/constants"
 
 
 export function usePortfolio() {
-  const [assets, setAssets] = useLocalStorage<PortfolioAsset[]>("portfolio_assets", []);
-  const [transactions, setTransactions] = useLocalStorage<AssetsTransactions[]>("assets_transactions", []);
+  const [assets, setAssets] = useLocalStorage<PortfolioAsset[]>(STORAGE_KEYS.ASSETS, []);
+  const [transactions, setTransactions] = useLocalStorage<AssetsTransactions[]>(STORAGE_KEYS.TRANSACTIONS, []);
   const [searchQuery, setSearchQuery] = useState("");
   const { error, isLoading, coins, refreshData, fetchExtraCoinsByIds } = useCrypto()
   const [extraCoins, setExtraCoins] = useState<Coin[]>([])
