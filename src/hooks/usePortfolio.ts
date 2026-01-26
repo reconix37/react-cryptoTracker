@@ -12,9 +12,7 @@ import { calculatePortfolioStats, enrichAssetData } from "@/utils/portfolioMath"
 export function usePortfolio() {
   const [assets, setAssets] = useLocalStorage<PortfolioAsset[]>(STORAGE_KEYS.ASSETS, []);
   const [searchQuery, setSearchQuery] = useState("");
-  const { error, isLoading, coins, refreshData, fetchExtraCoinsByIds } = useCrypto()
-  const [extraCoins, setExtraCoins] = useState<Coin[]>([])
-  const [failedIds, setFailedIds] = useState<Set<string>>(new Set());
+  const { error, isLoading, coins, refreshData, ensureCoinsLoaded } = useCrypto()
 
   const { transactions, addTransaction } = useTransactions();
 
@@ -22,64 +20,27 @@ export function usePortfolio() {
 
   useEffect(() => {
     document.title = "My Portfolio | CryptoTracker";
-  },[]);
+  }, []);
 
   useEffect(() => {
-    const loadData = async () => {
+
+    const initData = async () => {
+
+      await refreshData()
+
       if (assetIds.length > 0) {
-        await refreshData(true, assetIds);
-      } else {
-        await refreshData();
+        ensureCoinsLoaded(assetIds);
       }
-    };
-    loadData();
-  }, [assetIds.join(','), refreshData]);
+    }
+    initData();
 
-  useEffect(() => {
-    if (!coins) return;
-
-    const missingCoins = assets.filter(asset => {
-      const inMain = coins.some(c => c.id === asset.id);
-      const inExtra = extraCoins.some(c => c.id === asset.id);
-      const failed = failedIds.has(asset.id);
-
-      return !inMain && !inExtra && !failed;
-    });
-
-    if (missingCoins.length === 0) return;
-
-    const missingIds = missingCoins.map(a => a.id).join(",");
-    if (!missingIds) return;
-
-    const loadMissing = async () => {
-      const result = await fetchExtraCoinsByIds(missingIds);
-      const returnedIds = new Set(result.map(c => c.id));
-
-      if (result.length > 0) {
-        setExtraCoins(prev => [...prev, ...result]);
-      }
-      const failed = missingCoins
-        .map(a => a.id)
-        .filter(id => !returnedIds.has(id));
-
-      if (failed.length > 0) {
-        setFailedIds(prev => {
-          const next = new Set(prev);
-          failed.forEach(id => next.add(id));
-          return next;
-        });
-      }
-    };
-
-    loadMissing();
-  }, [assets, coins, extraCoins, failedIds, fetchExtraCoinsByIds]);
+  }, [refreshData, ensureCoinsLoaded])
 
   const coinsMap = useMemo(() => {
     const map = new Map<string, Coin>();
     coins?.forEach(c => c?.id && map.set(c.id, c));
-    extraCoins?.forEach(c => c?.id && map.set(c.id, c));
     return map;
-  }, [coins, extraCoins]);
+  }, [coins]);
 
   const enrichedAssets = useMemo(() => {
     return assets
@@ -142,6 +103,7 @@ export function usePortfolio() {
     searchQuery,
     setSearchQuery,
     handleAddAsset,
+    ensureCoinsLoaded,
     handleDelete,
     ...stats,
     totalProfitData: {
@@ -153,4 +115,5 @@ export function usePortfolio() {
     refetch: (force = false) => Promise.all([refreshData(force)]),
   };
 }
+
 

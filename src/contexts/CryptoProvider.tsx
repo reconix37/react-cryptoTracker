@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, createContext, useContext, type ReactNode } from "react";
+import { useState, useCallback, useRef, createContext, useContext, type ReactNode, useMemo, useEffect } from "react";
 import { fetchCoinGecko, apiGuards } from "@/services/api";
 import type { Coin } from "@/types/Coin";
 import type { CryptoContext as ICryptoContext } from "@/types/CryptoContext";
@@ -12,19 +12,25 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
     const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState<number>(1);
     const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+    const [failedIds, setFailedIds] = useState<Set<string>>(new Set());
 
     const lastFetched = useRef<number>(0);
     const isFetching = useRef(false);
     const abortController = useRef<AbortController | null>(null);
     const errorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastPageRef = useRef<number>(page)
+    const coinsRef = useRef(coins)
 
 
-    const updateCoinsState = useCallback((incomingData: Coin[], currentPage: number) => {
+    useEffect(() => { coinsRef.current = coins }, [coins])
+
+    const updateCoinsState = useCallback((incomingData: Coin[]) => {
         setCoins(prev => {
-            if (currentPage === 1) return incomingData;
-            const newItems = incomingData.filter(newItem => !prev.some(old => old.id === newItem.id));
-            return [...prev, ...newItems];
+            const cache = new Map(prev.map(coin => [coin.id, coin]));
+            incomingData.forEach(coin => {
+                cache.set(coin.id, coin);
+            });
+            return Array.from(cache.values());
         });
         setLastUpdated(Date.now());
     }, []);
@@ -80,7 +86,7 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
                 page: page.toString(),
             };
             const data = await fetchCoinGecko(API_CONFIG.ENDPOINT, params, abortController.current?.signal);
-            updateCoinsState(data, page);
+            updateCoinsState(data);
             lastPageRef.current = page;
         });
     }, [page, lastUpdated, updateCoinsState, executeRequest]);
@@ -89,7 +95,7 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
         return await executeRequest(async () => {
             const data = await fetchCoinGecko(API_CONFIG.ENDPOINT, { vs_currency: MARKET_CONFIG.DEFAULT_CURRENCY, ids: id }, abortController.current?.signal);
             if (data && data[0]) {
-                updateCoinsState(data, 1);
+                updateCoinsState(data);
                 return data[0];
             }
             return null;
@@ -97,21 +103,52 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
     }, [updateCoinsState, executeRequest]);
 
     const fetchExtraCoinsByIds = useCallback(
-        async (ids: string): Promise<Coin[]> => {
+        async (ids: string[]): Promise<Coin[]> => {
             const result = await executeRequest(async () => {
                 const data = await fetchCoinGecko(
                     API_CONFIG.ENDPOINT,
-                    { vs_currency: MARKET_CONFIG.DEFAULT_CURRENCY, ids },
+                    { vs_currency: MARKET_CONFIG.DEFAULT_CURRENCY, ids: ids.join(",") },
                     abortController.current?.signal
                 );
 
-                updateCoinsState(data, 1);
+                updateCoinsState(data);
                 return data as Coin[];
             });
             return result ?? [];
         },
         [executeRequest, updateCoinsState]
     );
+
+    const ensureCoinsLoaded = useCallback(async (ids: string[]) => {
+
+        if (!ids) return;
+
+        const missingCoins = ids.filter(coin => {
+            const inMain = coinsRef.current.some(c => c.id === coin);
+            const failed = failedIds.has(coin);
+
+            return !inMain && !failed;
+        });
+
+        if (missingCoins.length === 0) return
+        
+
+        const result = await fetchExtraCoinsByIds(missingCoins);
+        const returnedIds = new Set(result.map(c => c.id));
+
+        const failed = missingCoins
+            .map(a => a)
+            .filter(id => !returnedIds.has(id));
+
+        if (failed.length > 0) {
+            setFailedIds(prev => {
+                const next = new Set(prev);
+                failed.forEach(id => next.add(id));
+                return next;
+            });
+        }
+
+    }, [ failedIds, fetchExtraCoinsByIds])
 
 
     const resetApp = useCallback(() => {
@@ -132,6 +169,7 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
         refreshData: fetchMarketData,
         getCoinById: (id: string) => coins.find(c => c.id === id),
         fetchCoinById,
+        ensureCoinsLoaded,
         fetchExtraCoinsByIds,
     };
 

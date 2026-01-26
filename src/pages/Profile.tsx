@@ -165,24 +165,27 @@ export default function Profile() {
 
         <div className="divide-y">
           {error && (
-            <Alert variant="destructive" className="m-4 flex items-center justify-between bg-rose-500/10 border-rose-500/20 text-rose-600">
-              <div className="flex items-center gap-3">
-                <AlertCircleIcon className="h-5 w-5" />
-                <div>
-                  <AlertTitle className="font-bold">Update Note</AlertTitle>
-                  <p className="text-sm opacity-90">{error}</p>
+            <div className="p-4"> 
+              <Alert variant="destructive" className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-rose-500/10 border-rose-500/20 text-rose-600">
+                <div className="flex items-center gap-3">
+                  <AlertCircleIcon className="h-5 w-5 shrink-0" />
+                  <div>
+                    <AlertTitle className="font-bold text-sm sm:text-base">Rate Limit Active</AlertTitle>
+                    <p className="text-xs sm:text-sm opacity-90">{error}</p>
+                  </div>
                 </div>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleGlobalRefetch}
-                className="ml-auto border-rose-500/20 hover:bg-rose-500/10"
-              >
-                <RefreshCw className={cn("mr-2 h-4 w-4", isLoading && "animate-spin")} />
-                Update Now
-              </Button>
-            </Alert>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGlobalRefetch}
+                  disabled={isLoading}
+                  className="shrink-0 border-rose-500/20 hover:bg-rose-500/20 text-xs"
+                >
+                  <RefreshCw className={cn("mr-2 h-3 w-3", isLoading && "animate-spin")} />
+                  Retry
+                </Button>
+              </Alert>
+            </div>
           )}
 
           {isLoading && enrichedAssets.length === 0 &&
