@@ -42,7 +42,6 @@ export default function Auth() {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        validate()
         if (validate()) {
             console.log("Success! Sending data...");
             login(formData.email, formData.password);
@@ -72,7 +71,7 @@ export default function Auth() {
     }
 
     return (
-        <form className="min-h-screen flex items-center justify-center bg-background text-foreground">
+        <form className="min-h-screen flex items-center justify-center bg-background text-foreground" onSubmit={handleSubmit}>
             <FieldSet>
                 <FieldLegend className="text-3xl font-bold">{isLogin ? "Welcome Back" : "Create Account"}</FieldLegend>
                 <FieldDescription>This appears on invoices and emails.</FieldDescription>
@@ -81,13 +80,13 @@ export default function Auth() {
                         <>
                             <Field>
                                 <FieldLabel htmlFor="name">Full Name</FieldLabel>
-                                <Input id="name" value={formData.name} onChange={handleChange} />
+                                <Input id="name" value={formData.name} onChange={handleChange} aria-invalid={!!errors.name} />
                                 {errors.name && <FieldError>{errors.name}</FieldError>}
                             </Field>
                             <Field>
                                 <FieldLabel htmlFor="userName">User Name</FieldLabel>
                                 <Input id="userName" value={formData.userName}
-                                    onChange={handleChange} autoComplete="off" placeholder="Evil Rabbit" />
+                                    onChange={handleChange} autoComplete="off" aria-invalid={!!errors.userName} placeholder="Evil Rabbit" />
                                 {errors.userName && <FieldError>{errors.userName}</FieldError>}
                             </Field>
                         </>
@@ -95,17 +94,17 @@ export default function Auth() {
                     <Field>
                         <FieldLabel htmlFor="email">Email</FieldLabel>
                         <Input id="email" value={formData.email}
-                            onChange={handleChange} autoComplete="off" aria-invalid={!!errors.email} />
+                            onChange={handleChange} autoComplete="off" aria-invalid={!!errors.email} placeholder="exmaple@gmail.com" />
                         {errors.email && <FieldError>{errors.email}</FieldError>}
                     </Field>
                     <Field>
                         <FieldLabel htmlFor="password">Password</FieldLabel>
                         <Input id="password" value={formData.password}
-                            onChange={handleChange} autoComplete="off" aria-invalid={!!errors.email} />
+                            onChange={handleChange} autoComplete="off" aria-invalid={!!errors.password} />
                             {errors.password && <FieldError>{errors.password}</FieldError>}
                     </Field>
                 </FieldGroup>
-                <Button type="submit" className="w-full" onClick={handleSubmit}>
+                <Button type="submit" className="w-full">
                     {isLogin ? "Sign In" : "Sign Up"}
                 </Button>
                 <p onClick={() => setIsLogin(!isLogin)} className="cursor-pointer text-sm underline text-center mt-4">

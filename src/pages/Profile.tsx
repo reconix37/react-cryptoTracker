@@ -299,9 +299,7 @@ export default function Profile() {
           </div>
         </div>
       ) : (
-        <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-8 bg-background text-foreground min-h-screen flex flex-col items-center justify-center">
           <Auth />
-        </div>
       )}
     </>
   );
