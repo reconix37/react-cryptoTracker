@@ -17,6 +17,7 @@ import FearGreedWidget from "@/components/profile/FearGreedWidget";
 import { useFearGreed } from "@/hooks/useFearGreed";
 import { useCrypto } from "@/contexts/CryptoProvider";
 import { useAuth } from "@/contexts/AuthProvider";
+import Auth from "./Auth";
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('en-US', {
@@ -299,14 +300,7 @@ export default function Profile() {
         </div>
       ) : (
         <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-8 bg-background text-foreground min-h-screen flex flex-col items-center justify-center">
-          <h2 className="text-xl font-bold">Please log in to view your profile and portfolio.</h2>
-          <Button onClick={login}>Log in</Button>
-          {isAuthLoading &&
-            <div className="flex flex-col items-center mt-4">
-              <p className="mb-2">Logging in...</p>
-              <RefreshCw className={cn("mr-2 h-3 w-3", isAuthLoading && "animate-spin")} />
-            </div>
-          }
+          <Auth />
         </div>
       )}
     </>

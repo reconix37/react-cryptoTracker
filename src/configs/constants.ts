@@ -20,5 +20,6 @@ export const MARKET_CONFIG = {
 
 export const STORAGE_KEYS = {
   ASSETS: "portfolio_assets",
-  TRANSACTIONS: "assets_transactions"
+  TRANSACTIONS: "assets_transactions",
+  USER: "auth_user"
 } as const
