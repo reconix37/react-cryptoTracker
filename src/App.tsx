@@ -7,6 +7,8 @@ import Profile from './pages/Profile';
 import { Toaster } from 'sonner';
 import CryptoProvider from './contexts/CryptoProvider';
 import AuthProvider from './contexts/AuthProvider';
+import { ProtectedRoute } from './components/routes/ProtectedRoute';
+import Auth from './pages/Auth';
 
 function App() {
 
@@ -17,9 +19,12 @@ function App() {
           <Toaster position="top-center" richColors closeButton />
           <NavBar />
           <Routes>
+            <Route path='/auth' element={<Auth />} />
             <Route path="/" element={<Markets />} />
             <Route path="/coin/:id" element={<CoinPages />} />
-            <Route path="/profile" element={<Profile />} />
+            <Route element={<ProtectedRoute />}>
+              <Route path="/profile" element={<Profile />} />
+            </Route>
           </Routes>
         </BrowserRouter>
       </CryptoProvider>
