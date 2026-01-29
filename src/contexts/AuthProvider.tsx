@@ -15,7 +15,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         setIsLoading(true);
         try {
             await new Promise((resolve) => setTimeout(resolve, 1000));
-            const foundUser = allUsers.find(u => u.email === email && u.passwordHash === pass);
+            const foundUser = allUsers.find(u => u.email === email && u.password === pass);
             if (foundUser) {
                 setUser(foundUser);
             } else {
@@ -41,7 +41,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                     email: formData.email,
                     name: formData.name,
                     userName: formData.userName,
-                    passwordHash: formData.passwordHash,
+                    password: formData.password,
                 }
                 setAllUsers([...users, newUser]);
                 setUser(newUser);

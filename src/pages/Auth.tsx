@@ -20,14 +20,14 @@ export default function Auth() {
     const [formData, setFormData] = useState({
         name: '',
         email: '',
-        passwordHash: '',
+        password: '',
         userName: '',
         id: '',
     });
-
+    
     const [errors, setErrors] = useState<Record<string, string>>({});
 
-    const { login, register } = useAuth();
+    const { login, register, isLoading } = useAuth();
     const navigate = useNavigate();
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -35,26 +35,28 @@ export default function Auth() {
         setFormData(prev => ({ ...prev, [id]: value }));
 
         setErrors((prev) => {
-            if(!prev) return prev
+            if (!prev) return prev
 
-            const next = {...prev}
+            const next = { ...prev }
             delete next[id]
             return next
         })
-    }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (validate() && isLogin) {
-            console.log("Success! Sending data...");
-            await login(formData.email, formData.passwordHash);
-            navigate("/profile")
-        } else if (validate() && !isLogin) {
-            console.log("Success! Sending data...");
-            await register(formData);
-            navigate("/profile")
-        } else {
-            setErrors({ form: "Invalid email or password" });
+        try {
+            if (validate() && isLogin) {
+                console.log("Success! Sending data...");
+                await login(formData.email, formData.password);
+                navigate("/profile")
+            } else if (validate() && !isLogin) {
+                console.log("Success! Sending data...");
+                await register(formData);
+                navigate("/profile")
+            }
+        } catch (error) {
+            setErrors({ form: (error as Error).message });
         }
     };
 
@@ -65,8 +67,8 @@ export default function Auth() {
             newErrors.email = "Incorrect email format";
         }
 
-        if (formData.passwordHash.length < 6) {
-            newErrors.passwordHash = "Minimum 6 characters required";
+        if (formData.password.length < 6) {
+            newErrors.password = "Minimum 6 characters required";
         }
 
         if (!isLogin) {
@@ -101,21 +103,22 @@ export default function Auth() {
                     )}
                     <Field>
                         <FieldLabel htmlFor="email">Email</FieldLabel>
-                        <Input id="email" value={formData.email}
+                        <Input type="email" id="email" value={formData.email}
                             onChange={handleChange} autoComplete="off" aria-invalid={!!errors.email} placeholder="exmaple@gmail.com" />
                         {errors.email && <FieldError>{errors.email}</FieldError>}
                     </Field>
                     <Field>
-                        <FieldLabel htmlFor="passwordHash">Password</FieldLabel>
-                        <Input id="passwordHash" value={formData.passwordHash}
-                            onChange={handleChange} autoComplete="off" aria-invalid={!!errors.passwordHash} />
-                            {errors.passwordHash && <FieldError>{errors.passwordHash}</FieldError>}
+                        <FieldLabel htmlFor="password">Password</FieldLabel>
+                        <Input type="password" id="password" value={formData.password}
+                            onChange={handleChange} autoComplete="off" aria-invalid={!!errors.password} />
+                        {errors.password && <FieldError>{errors.password}</FieldError>}
                     </Field>
                 </FieldGroup>
-                <Button type="submit" className="w-full">
-                    {isLogin ? "Sign In" : "Sign Up"}
+                {errors.form && <FieldError className="text-center font-bold">{errors.form}</FieldError>}
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? "Sending..." : (isLogin ? "Sign In" : "Sign Up")}
                 </Button>
-                <p onClick={() => setIsLogin(!isLogin)} className="cursor-pointer text-sm underline text-center mt-4">
+                <p onClick={() => setIsLogin(!isLogin)} className="cursor-pointer text-sm underline text-center mt-2">
                     {isLogin ? "Need an account? Register" : "Already have an account? Login"}
                 </p>
             </FieldSet>
