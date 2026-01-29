@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/contexts/AuthProvider";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function Auth() {
 
@@ -19,13 +20,15 @@ export default function Auth() {
     const [formData, setFormData] = useState({
         name: '',
         email: '',
-        password: '',
+        passwordHash: '',
         userName: '',
+        id: '',
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
 
-    const { login } = useAuth();
+    const { login, register } = useAuth();
+    const navigate = useNavigate();
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { id, value } = e.target;
@@ -40,13 +43,18 @@ export default function Auth() {
         })
     }
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (validate()) {
+        if (validate() && isLogin) {
             console.log("Success! Sending data...");
-            login(formData.email, formData.password);
+            await login(formData.email, formData.passwordHash);
+            navigate("/profile")
+        } else if (validate() && !isLogin) {
+            console.log("Success! Sending data...");
+            await register(formData);
+            navigate("/profile")
         } else {
-            console.log("Validation failed");
+            setErrors({ form: "Invalid email or password" });
         }
     };
 
@@ -57,8 +65,8 @@ export default function Auth() {
             newErrors.email = "Incorrect email format";
         }
 
-        if (formData.password.length < 6) {
-            newErrors.password = "Minimum 6 characters required";
+        if (formData.passwordHash.length < 6) {
+            newErrors.passwordHash = "Minimum 6 characters required";
         }
 
         if (!isLogin) {
@@ -98,10 +106,10 @@ export default function Auth() {
                         {errors.email && <FieldError>{errors.email}</FieldError>}
                     </Field>
                     <Field>
-                        <FieldLabel htmlFor="password">Password</FieldLabel>
-                        <Input id="password" value={formData.password}
-                            onChange={handleChange} autoComplete="off" aria-invalid={!!errors.password} />
-                            {errors.password && <FieldError>{errors.password}</FieldError>}
+                        <FieldLabel htmlFor="passwordHash">Password</FieldLabel>
+                        <Input id="passwordHash" value={formData.passwordHash}
+                            onChange={handleChange} autoComplete="off" aria-invalid={!!errors.passwordHash} />
+                            {errors.passwordHash && <FieldError>{errors.passwordHash}</FieldError>}
                     </Field>
                 </FieldGroup>
                 <Button type="submit" className="w-full">
