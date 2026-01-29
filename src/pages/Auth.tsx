@@ -24,7 +24,7 @@ export default function Auth() {
         userName: '',
         id: '',
     });
-    
+
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const { login, register, isLoading } = useAuth();
@@ -45,16 +45,17 @@ export default function Auth() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!validate()) return;
+
         try {
-            if (validate() && isLogin) {
-                console.log("Success! Sending data...");
+            if (isLogin) {
                 await login(formData.email, formData.password);
-                navigate("/profile")
-            } else if (validate() && !isLogin) {
-                console.log("Success! Sending data...");
+            } else {
                 await register(formData);
-                navigate("/profile")
             }
+
+            navigate("/profile");
         } catch (error) {
             setErrors({ form: (error as Error).message });
         }
@@ -103,7 +104,7 @@ export default function Auth() {
                     )}
                     <Field>
                         <FieldLabel htmlFor="email">Email</FieldLabel>
-                        <Input type="email" id="email" value={formData.email}
+                        <Input id="email" value={formData.email}
                             onChange={handleChange} autoComplete="off" aria-invalid={!!errors.email} placeholder="exmaple@gmail.com" />
                         {errors.email && <FieldError>{errors.email}</FieldError>}
                     </Field>
