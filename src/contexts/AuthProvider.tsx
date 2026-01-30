@@ -61,6 +61,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
     const value: IAuthContext = {
         isAuthenticated: !!user,
+        user,
         isLoading,
         login,
         register,

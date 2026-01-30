@@ -7,14 +7,23 @@ import type { Coin } from "@/types/Coin";
 import { STORAGE_KEYS } from "@/configs/constants"
 import useTransactions from "./useTransactions";
 import { calculatePortfolioStats, enrichAssetData } from "@/utils/portfolioMath";
+import { useAuth } from "@/contexts/AuthProvider";
 
 
 export function usePortfolio() {
-  const [assets, setAssets] = useLocalStorage<PortfolioAsset[]>(STORAGE_KEYS.ASSETS, []);
+  const { user } = useAuth();
+
   const [searchQuery, setSearchQuery] = useState("");
   const { error, isLoading, coins, refreshData, ensureCoinsLoaded } = useCrypto()
 
-  const { transactions, addTransaction } = useTransactions();
+  const { transactions, addTransaction } = useTransactions(user ? user.id : null);
+
+  const userStorageKey = user ? `${STORAGE_KEYS.ASSETS}_${user.id}` : null;
+
+  const [assets, setAssets] = useLocalStorage<PortfolioAsset[]>(
+    userStorageKey ?? "temp_guest_storage", 
+    []
+  );
 
   const assetIds = useMemo(() => assets.map(a => a.id), [assets]);
 

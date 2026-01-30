@@ -3,8 +3,10 @@ import type { AssetsTransactions, PortfolioAsset } from "@/types/PortfolioAsset"
 import { useLocalStorage } from "./useLocalStorage";
 import { useCallback } from "react";
 
-export default function useTransactions() {
-    const [transactions, setTransactions] = useLocalStorage<AssetsTransactions[]>(STORAGE_KEYS.TRANSACTIONS, []);
+export default function useTransactions(userId: string | null) {
+    
+    const userSpecificKey = userId ? `${STORAGE_KEYS.TRANSACTIONS}_${userId}` : STORAGE_KEYS.TRANSACTIONS;
+    const [transactions, setTransactions] = useLocalStorage<AssetsTransactions[]>(userSpecificKey, []);
 
     const addTransaction = useCallback((
         asset: PortfolioAsset,
