@@ -52,7 +52,7 @@ export default function Auth() {
             if (isLogin) {
                 await login(formData.email, formData.password);
             } else {
-                await register(formData);
+                await register(formData.email, formData.password, formData.name, formData.userName);
             }
 
             navigate("/profile");
@@ -64,8 +64,10 @@ export default function Auth() {
     const validate = () => {
         const newErrors: Record<string, string> = {};
 
-        if (!formData.email.includes("@")) {
-            newErrors.email = "Incorrect email format";
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (!emailRegex.test(formData.email)) {
+            newErrors.email = "Please enter a valid email address (e.g., user@domain.com)";
         }
 
         if (formData.password.length < 6) {

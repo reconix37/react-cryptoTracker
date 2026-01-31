@@ -6,6 +6,6 @@ export interface IAuthContext {
     user: User | null;
     login: (email: string, password: string) => Promise<void>;
     logout: () => void;
-    register: (formData: User) => Promise<void>;
+    register: (email: string, password: string, name: string, userName: string) => Promise<void>;
     getToken: () => string | null;
 }
