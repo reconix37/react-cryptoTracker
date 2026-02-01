@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/contexts/AuthProvider";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function Auth() {
@@ -25,10 +25,11 @@ export default function Auth() {
         id: '',
     });
 
+    const navigate = useNavigate();
+
     const [errors, setErrors] = useState<Record<string, string>>({});
 
-    const { login, register, isLoading } = useAuth();
-    const navigate = useNavigate();
+    const { login, register, isLoading, isAuthenticated } = useAuth();
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { id, value } = e.target;
@@ -54,12 +55,21 @@ export default function Auth() {
             } else {
                 await register(formData.email, formData.password, formData.name, formData.userName);
             }
-
-            navigate("/profile");
         } catch (error) {
             setErrors({ form: (error as Error).message });
         }
     };
+
+    useEffect(() => {
+        document.title = isLogin ? "Login - CryptoTracker" : "Register - CryptoTracker";
+        setErrors({});
+    }, [isLogin]);
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            navigate("/profile");
+        }
+    }, [isAuthenticated]);
 
     const validate = () => {
         const newErrors: Record<string, string> = {};

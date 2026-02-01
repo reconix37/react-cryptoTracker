@@ -9,12 +9,8 @@ import CryptoProvider from './contexts/CryptoProvider';
 import AuthProvider from './contexts/AuthProvider';
 import { ProtectedRoute } from './components/routes/ProtectedRoute';
 import Auth from './pages/Auth';
-import { auth } from './configs/firebase';
 
-function App() {
-
-  console.log("Firebase Auth initialized:", auth);
-  
+function App() {  
   return (
     <AuthProvider>
       <CryptoProvider>
