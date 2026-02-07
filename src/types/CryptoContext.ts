@@ -1,11 +1,13 @@
 import type { Coin } from "./Coin";
+import type { RequestResult } from "./RequestResult";
 
 export interface CryptoContext {
 
-    coins: Coin[];
+    coins: Record<string, Coin>;
     isLoading: boolean;
     error: string | null;
     lastUpdated: number | null;
+    marketList: Coin[];
 
     page: number;
     setPage: React.Dispatch<React.SetStateAction<number>>;
@@ -22,4 +24,5 @@ export interface CryptoContext {
 
     ensureCoinsLoaded: (ids: string[]) => Promise<void>;
 
+    executeRequest: <T>(requestFn: () => Promise<T>) => Promise<RequestResult<T>>;
 }

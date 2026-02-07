@@ -1,7 +1,7 @@
 import type { IAuthContext } from "@/types/AuthContext";
 import type { User } from "@/types/User";
 import { createContext, useContext, useEffect, useState } from "react";
-import { auth, db } from "@/configs/firebase";
+import { auth, db } from "@/services/firebase";
 import { createUserWithEmailAndPassword, onAuthStateChanged, signOut, signInWithEmailAndPassword } from "firebase/auth";
 import { toast } from "sonner";
 import { doc, getDoc, setDoc } from "firebase/firestore";

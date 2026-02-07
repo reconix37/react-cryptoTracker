@@ -1,8 +1,8 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { useFearGreed } from "@/hooks/useFearGreed";
+import { useFearGreed } from "@/features/auth/hooks/useFearGreed";
 import { cn } from "@/lib/utils";
 import { AlertCircle, AlertCircleIcon } from "lucide-react";
-import { Alert, AlertTitle } from "../ui/alert";
+import { Alert, AlertTitle } from "../../../components/ui/alert";
 
 export default function FearGreedWidget() {
     const { data, isLoading, error } = useFearGreed();

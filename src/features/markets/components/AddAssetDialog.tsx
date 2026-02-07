@@ -1,7 +1,7 @@
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Button } from "../ui/button"
+import { Button } from "../../../components/ui/button"
 import { useEffect, useMemo, useState } from "react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ChevronsUpDown, Check, Plus, RefreshCw } from "lucide-react"
@@ -11,7 +11,7 @@ import type { Coin } from "@/types/Coin"
 
 interface AddAssetDialogProps {
     onAdd: (asset: { id: string; amount: number; buyPrice: number }) => void;
-    marketData: Coin[];
+    marketData: Record<string, Coin>;
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
     preselectedAssetId?: string;
@@ -37,8 +37,10 @@ export default function AddAssetDialog({
     const [openPopover, setOpenPopover] = useState(false);
     const [emptyField, setEmptyField] = useState(false);
 
+    const isSyncing = Object.keys(marketData).length === 0
+
     const selectedCoin = useMemo(() =>
-        marketData.find((c: Coin) => c.id === newCoinId),
+        marketData[newCoinId],
         [marketData, newCoinId]
     );
 
@@ -46,7 +48,7 @@ export default function AddAssetDialog({
         if (isOpen) {
             if (preselectedAssetId) {
                 setNewCoinId(preselectedAssetId);
-                const coin = marketData.find((c) => c.id === preselectedAssetId);
+                const coin = marketData[preselectedAssetId];
 
                 if (coin) {
                     setNewCoinPrice(coin.current_price.toString());
@@ -81,23 +83,22 @@ export default function AddAssetDialog({
 
     return (
         <Dialog open={isOpen} onOpenChange={setOpen}>
-            {!preselectedAssetId && (
-                <DialogTrigger asChild>
-                    <Button variant="outline" disabled={isLoading}>
-                        {isLoading ? (
-                            <>
-                                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                                Updating...
-                            </>
-                        ) : (
-                            <>
-                                <Plus className="mr-2 h-4 w-4" />
-                                Add Asset
-                            </>
-                        )}
-                    </Button>
-                </DialogTrigger>
-            )}
+            {!preselectedAssetId && <DialogTrigger asChild>
+                <Button variant="outline" disabled={isLoading || isSyncing}>
+                    {isLoading ? (
+                        <>
+                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                            Updating...
+                        </>
+                    ) : (
+                        <>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Asset
+                        </>
+                    )}
+                </Button>
+            </DialogTrigger>
+            }
             <DialogContent className="bg-background text-foreground border-border sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle className="text-xl font-bold">Add Asset</DialogTitle>
@@ -140,17 +141,17 @@ export default function AddAssetDialog({
                                         <CommandList className="max-h-60 custom-scrollbar">
                                             <CommandEmpty>No coin found.</CommandEmpty>
                                             <CommandGroup>
-                                                {marketData.map((coin) => (
+                                                {Object.entries(marketData).map(([id, coin]: [string, Coin]) => (
                                                     <CommandItem
-                                                        key={coin.id}
-                                                        value={coin.name}
+                                                        key={id}
+                                                        value={`${coin.name} ${coin.symbol}`}
                                                         onSelect={() => {
-                                                            setNewCoinId(coin.id);
+                                                            setNewCoinId(id);
                                                             setNewCoinPrice(coin.current_price.toString());
                                                             setOpenPopover(false);
                                                         }}
                                                     >
-                                                        <Check className={cn("mr-2 h-4 w-4", newCoinId === coin.id ? "opacity-100" : "opacity-0")} />
+                                                        <Check className={cn("mr-2 h-4 w-4", newCoinId === id ? "opacity-100" : "opacity-0")} />
                                                         <div className="flex items-center gap-2 flex-1">
                                                             <img src={coin.image} alt="" className="w-5 h-5" />
                                                             <span>{coin.name}</span>

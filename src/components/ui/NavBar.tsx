@@ -1,11 +1,12 @@
-import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { useThemes } from "@/hooks/useThemes";
+
+import { useThemes } from "@/globalHooks/useThemes";
 import { Link, NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Moon, Sun, Star } from "lucide-react";
+import { usePortfolioData } from "@/providers/PortfolioProvider";
 
 export default function NavBar() {
-    const [watchlist] = useLocalStorage<string[]>("watchlist", []);
+    const { watchlist } = usePortfolioData()
     const { theme, toggleTheme } = useThemes();
 
     return (

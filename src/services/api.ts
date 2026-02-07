@@ -40,4 +40,4 @@ export const fetchCoinGecko = async (endpoint: string, params: Record<string, st
     return response.json();
 };
 
-export const apiGuards = { canMakeRequest };
+export const apiGuards = { canMakeRequest, fetchCoinGecko};

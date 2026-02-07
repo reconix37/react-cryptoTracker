@@ -1,5 +1,5 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
-import { useThemes } from "@/hooks/useThemes";
+import { useThemes } from "@/globalHooks/useThemes";
 
 interface ChartData {
   name: string;

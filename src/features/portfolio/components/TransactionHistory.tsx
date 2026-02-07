@@ -1,11 +1,11 @@
 import { cn } from "@/lib/utils"
 import { ArrowDownRight, ArrowUpRight } from "lucide-react"
-import type { AssetsTransactions } from "@/types/PortfolioAsset"
 import type { Coin } from "@/types/Coin"
+import type { AssetsTransactions } from "@/types/TransactoionsAsset";
 
 interface TransactionHistoryProps {
     transactions: AssetsTransactions[];
-    allCoins: Coin[];
+    allCoins: Record<string, Coin>;
 }
 
 export default function TransactionHistory({ transactions, allCoins }: TransactionHistoryProps) {
@@ -21,7 +21,7 @@ export default function TransactionHistory({ transactions, allCoins }: Transacti
     return (
         <div>
             {transactions.map((transactionsItem) => {
-                const coin = allCoins.find(c => c.id === transactionsItem.coinId)
+                const coin = allCoins[transactionsItem.coinId];
                 const isBuy = transactionsItem.type === "buy"
                 
                 return (
@@ -45,7 +45,7 @@ export default function TransactionHistory({ transactions, allCoins }: Transacti
                                     )}
                                 </div>
                                 <p className="text-[10px] text-muted-foreground">
-                                    {new Date(transactionsItem.date).toLocaleDateString()}
+                                    {new Date(transactionsItem.timestamp).toDateString()}
                                 </p>
                             </div>
                         </div>
@@ -58,7 +58,7 @@ export default function TransactionHistory({ transactions, allCoins }: Transacti
                                 {transactionsItem.type.toUpperCase()}
                             </p>
                             <p className="font-medium text-sm mt-1">
-                                ${transactionsItem.buyPrice.toLocaleString()}
+                                ${transactionsItem.price.toLocaleString()}
                             </p>
                         </div>
                     </div>

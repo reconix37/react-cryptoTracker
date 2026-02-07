@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import {
     Field,
@@ -10,7 +9,7 @@ import {
     FieldSet,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { useAuth } from "@/contexts/AuthProvider";
+import { useAuth } from "@/providers/AuthProvider";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 

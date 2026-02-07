@@ -1,36 +1,35 @@
 import { Link } from "react-router-dom"
 import { Button } from "@/components/ui/button";
-import CoinChart from "@/components/coins/CoinChart";
-import { useCoinPages } from "@/hooks/useCoinPages";
+import CoinChart from "@/features/markets/components/CoinChart";
+import { useCoinPages } from "@/features/markets/hooks/useCoinPages";
 import { PlusIcon, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumbers";
-import AddAssetDialog from "@/components/profile/AddAssetDialog";
-import { usePortfolio } from "@/hooks/usePortfolio";
-import { useAuth } from "@/contexts/AuthProvider";
+import AddAssetDialog from "@/features/markets/components/AddAssetDialog";
 
 export default function CoinPages() {
     const {
         coinDetails,
         error,
+        coins,
         isLoading,
-        id,
         isInWatchlist,
+        id,
         myAsset,
         isAddDialogOpen,
+        isAuthenticated,
+        addAsset,
         setIsAddDialogOpen,
-        toggleWatchlist,
         formatCompactNumber,
+        toggleWatchlist,
         fetchCoinById
     } = useCoinPages()
 
-    const {
-        coins,
-        handleAddAsset
-    } = usePortfolio()
-
-    const { isAuthenticated } = useAuth();
-
+    const handleAddWatchlist = () => {
+        if (coinDetails?.id) {
+            toggleWatchlist(coinDetails.id)
+        }
+    }
 
 
     if (isLoading && !coinDetails) return (
@@ -77,7 +76,7 @@ export default function CoinPages() {
                                     {isAuthenticated ? (
                                         <button
                                             type="button"
-                                            onClick={toggleWatchlist}
+                                            onClick={handleAddWatchlist}
                                             className={cn(
                                                 "px-6 py-2 rounded-lg font-semibold transition-all duration-200 cursor-pointer",
                                                 isInWatchlist
@@ -99,12 +98,16 @@ export default function CoinPages() {
                                     <div className="bg-secondary/50 p-4 rounded-xl border border-border/50 relative">
                                         <p className="text-muted-foreground text-sm font-medium mb-1 flex justify-between">
                                             Price
-                                            {error && <span className="text-[10px] text-destructive animate-pulse">Offline</span>}
+                                            {error === "Network error" && (
+                                                <span className="text-[10px] text-destructive animate-pulse">
+                                                    Offline
+                                                </span>
+                                            )}
                                         </p>
 
                                         <div className={cn(
                                             "transition-opacity duration-500",
-                                            error ? "opacity-50" : "opacity-100"
+                                            error === "Network error" ? "opacity-50" : "opacity-100"
                                         )}>
                                             <p className="text-2xl font-bold">
                                                 ${coinDetails.current_price.toLocaleString()}
@@ -159,17 +162,16 @@ export default function CoinPages() {
                                                     <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Profit / Loss</p>
                                                     <div className={cn(
                                                         "text-2xl font-black flex items-center gap-2",
-                                                        (coinDetails.current_price - myAsset.buyPrice) >= 0 ? "text-emerald-500" : "text-rose-500"
+                                                        (myAsset.profitValue) >= 0 ? "text-emerald-500" : "text-rose-500"
                                                     )}>
-                                                        <span>{(coinDetails.current_price - myAsset.buyPrice) >= 0 ? "+" : "-"}$</span>
-                                                        <AnimatedNumber value={Math.abs((coinDetails.current_price - myAsset.buyPrice) * myAsset.amount)} />
+                                                        <span>{(myAsset.profitValue) >= 0 ? "+" : "-"}$</span>
+                                                        <AnimatedNumber value={myAsset.profitValue} />
                                                     </div>
                                                     <p className={cn(
                                                         "text-sm font-bold flex items-center gap-1",
-                                                        (coinDetails.current_price - myAsset.buyPrice) >= 0 ? "text-emerald-500/80" : "text-rose-500/80"
+                                                        (myAsset.profitValue) >= 0 ? "text-emerald-500/80" : "text-rose-500/80"
                                                     )}>
-                                                        {(coinDetails.current_price - myAsset.buyPrice) >= 0 ? "▲" : "▼"}
-                                                        {Math.abs(((coinDetails.current_price - myAsset.buyPrice) / myAsset.buyPrice) * 100).toFixed(2)}%
+                                                        {(myAsset.profitValue) >= 0 ? "▲" : "▼"} {myAsset.profitPercent.toFixed(2)}%
                                                     </p>
                                                 </div>
                                             </div>
@@ -221,7 +223,7 @@ export default function CoinPages() {
                 preselectedAssetId={id}
                 marketData={coins}
                 onAdd={(data) => {
-                    handleAddAsset(data);
+                    addAsset(data);
                     setIsAddDialogOpen(false);
                 }} isLoading={false} />
         </div>

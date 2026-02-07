@@ -3,13 +3,13 @@ import { useCallback, useEffect, useRef, useState } from "react"
 
 
 export function useFearGreed() {
-    
-  const [data, setData] = useState<{ 
-    value: number; 
-    label: string; 
+
+  const [data, setData] = useState<{
+    value: number;
+    label: string;
     color: string;
   } | null>(null);
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const lastFetched = useRef(0)
@@ -26,7 +26,7 @@ export function useFearGreed() {
       const val = Number(raw.value);
 
       let colorClass = "text-emerald-500";
-      if (val <= 25) colorClass = "text-rose-600"; 
+      if (val <= 25) colorClass = "text-rose-600";
       else if (val <= 45) colorClass = "text-orange-500";
       else if (val <= 55) colorClass = "text-yellow-500";
       else if (val <= 75) colorClass = "text-lime-500";
@@ -34,11 +34,11 @@ export function useFearGreed() {
       setData({
         value: val,
         label: raw.value_classification,
-        color: colorClass, 
+        color: colorClass,
       });
 
       lastFetched.current = Date.now();
-      
+
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
@@ -53,13 +53,11 @@ export function useFearGreed() {
   const refetch = async (force = false) => {
     const now = Date.now();
 
-    if (!force && now - lastFetched.current <  86400000) {
+    if (!force && now - lastFetched.current < 86400000) {
       console.log("Too early for update, skipping...");
       return;
     }
     setError(null)
-    setIsLoading(true)
-
     try {
       await fetchFearGreed();
     } finally {

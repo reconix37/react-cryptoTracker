@@ -1,10 +1,20 @@
 import { Input } from "../components/ui/input";
-import CoinCard from "../components/coins/CoinCard";
 import { Button } from "@/components/ui/button";
-import CoinCardSkeleton from "@/components/coins/CoinCardSkeleton";
-import { useMarkets } from "@/hooks/useMarkets";
-import { useCooldown } from "@/hooks/useCoolDown";
+import { useMarkets } from "@/features/markets/hooks/useMarkets";
 import { motion } from "framer-motion";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { useNavigate } from "react-router-dom";
+import { Star } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { MarketTableSkeleton } from "@/features/markets/components/CoinTableSkeleton";
+import { formatCompactNumber } from "@/utils/formatCompactNumber";
 
 function Markets() {
   const {
@@ -14,27 +24,24 @@ function Markets() {
     setFilter,
     error,
     watchlist,
-    setPage,
+    marketList,
     page,
     isLoading,
+    isOnCooldown,
+    cooldown,
     finalDisplayCoins,
-    resetApp,
+    isEmpty,
+    handleLoadMore,
+    toggleWatchlist,
+    handleReset,
   } = useMarkets();
 
-  const { cooldown, startCooldown, isOnCooldown } = useCooldown(5);
+  const navigate = useNavigate();
 
-  const handleLoadMore = () => {
-    if (isLoading || isOnCooldown) return;
 
-    console.log('Load More clicked');
-    setPage((prev) => prev + 1);
-    startCooldown();
-  };
 
-  const handleReset = () => {
-    setSearch("")
-    setFilter("all")
-    resetApp()
+  if (isLoading && marketList.length === 0) {
+    return <MarketTableSkeleton rows={12} />;
   }
 
   return (
@@ -72,7 +79,7 @@ function Markets() {
         </Button>
       </div>
       <Button
-        variant="ghost" 
+        variant="ghost"
         size="sm"
         className="text-muted-foreground hover:text-foreground px-4 py-2"
         onClick={handleReset}
@@ -89,42 +96,107 @@ function Markets() {
           {error}
         </motion.div>
       )}
+        <Table className="w-full border border-border rounded-xl overflow-hidden">
+          <TableHeader className="bg-secondary/50">
+            <TableRow>
+              <TableHead></TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Price</TableHead>
+              <TableHead>24h Change</TableHead>
+              <TableHead className="text-right">Market Cap</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isEmpty ? (
+              <TableRow>
+                <TableCell colSpan={5} className="h-40">
+                  <div className="flex flex-col items-center justify-center gap-3 text-muted-foreground animate-in fade-in-50">
+                    {search ? (
+                      <>
+                        <p className="text-lg font-medium">Nothing found</p>
+                        <p className="text-sm">
+                          No results for{" "}
+                          <span className="font-semibold">"{search}"</span>
+                        </p>
+                      </>
+                    ) : filter === "watchlist" ? (
+                      <>
+                        <Star className="w-8 h-8 opacity-40" />
+                        <p className="text-lg font-medium">
+                          Your watchlist is empty
+                        </p>
+                        <p className="text-sm">
+                          Click the star ⭐ to add coins
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-lg font-medium">No coins available</p>
+                      </>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              finalDisplayCoins.map((coin) => (
+                <TableRow
+                  key={coin.id}
+                  onClick={() => navigate(`/coin/${coin.id}`)}
+                  className="cursor-pointer transition-colors hover:bg-accent active:bg-accent/70"
+                >
+                  <TableCell className="pr-0">
+                    <Star
+                      className={cn(
+                        "w-6 h-6 pl-2 cursor-pointer transition-all",
+                        watchlist.includes(coin.id)
+                          ? "text-yellow-400 fill-yellow-400"
+                          : "text-muted-foreground hover:text-yellow-400"
+                      )}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleWatchlist(coin.id);
+                      }}
+                    />
+                  </TableCell>
 
-      <div className="max-w-4xl grid md:grid-cols-2 lg:grid-cols-2 gap-4 w-full">
-        {isLoading && finalDisplayCoins.length === 0 ? (
-          Array.from({ length: 10 }).map((_, i) => (
-            <CoinCardSkeleton key={i} />
-          ))
-        ) : filter === "watchlist" && watchlist.length === 0 ? (
-          <p className="col-span-full text-center text-muted-foreground italic">
-            Your watchlist is empty.
-          </p>
-        ) : finalDisplayCoins.length === 0 ? (
-          <p className="col-span-full text-center text-muted-foreground">
-            No coins match your search.
-          </p>
-        ) : (
-          finalDisplayCoins.map((coin, index) => (
-            <motion.div
-              key={coin.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-            >
-              <CoinCard coin={coin} />
-            </motion.div>
-          ))
-        )}
+                  <TableCell className="flex items-center gap-3 font-medium">
+                    <img
+                      src={coin.image}
+                      alt={coin.name}
+                      className="w-8 h-8 rounded-full"
+                    />
+                    <div>
+                      <p>{coin.name}</p>
+                      <p className="text-xs text-muted-foreground uppercase">
+                        {coin.symbol}
+                      </p>
+                    </div>
+                  </TableCell>
 
-        {isLoading && page > 1 && (
-          <>
-            <CoinCardSkeleton />
-            <CoinCardSkeleton />
-          </>
-        )}
-      </div>
+                  <TableCell>
+                    ${coin.current_price.toLocaleString()}
+                  </TableCell>
 
-      {filter === "all" && !search && (
+                  <TableCell
+                    className={
+                      coin.price_change_percentage_24h >= 0
+                        ? "text-green-500"
+                        : "text-red-500"
+                    }
+                  >
+                    {coin.price_change_percentage_24h >= 0 ? "▲" : "▼"}
+                    {Math.abs(coin.price_change_percentage_24h).toFixed(2)}%
+                  </TableCell>
+
+                  <TableCell className="text-right">
+                    ${formatCompactNumber(coin.market_cap)}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      {filter === "all" && !search && !isLoading && (
         <div className="mt-4 mb-10 h-10 flex flex-col items-center justify-center gap-2">
           {isLoading && page > 1 ? (
             <div className="flex flex-col items-center gap-2">

@@ -1,7 +1,7 @@
 import type { Coin } from "@/types/Coin";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { AnimatedNumber } from "../ui/AnimatedNumbers";
+import { AnimatedNumber } from "../../../components/ui/AnimatedNumbers";
 
 interface CoinCardProps {
     coin: Coin;
