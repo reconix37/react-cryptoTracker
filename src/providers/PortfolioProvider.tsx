@@ -44,7 +44,7 @@ export default function PortfolioProvider({ children }: { children: React.ReactN
     useEffect(() => {
         if (!isAuthenticated || !user) return;
 
-        const q = query(collection(db, "transactions"), where("userId", "==", user.id), orderBy("date", "desc"));
+        const q = query(collection(db, "transactions"), where("userId", "==", user.id), orderBy("timestamp", "desc"));
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const txs = snapshot.docs.map(doc => ({
