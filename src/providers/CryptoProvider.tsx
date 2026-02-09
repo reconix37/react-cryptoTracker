@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, createContext, useContext, type ReactNode, useEffect } from "react";
 import { fetchCoinGecko, apiGuards } from "@/services/api";
-import type { Coin } from "@/types/Coin";
+import type { Coin, SearchIndex } from "@/types/Coin";
 import type { CryptoContext as ICryptoContext } from "@/types/CryptoContext";
 import type { RequestResult } from "@/types/RequestResult";
 import { CACHE_CONFIG, MARKET_CONFIG, API_CONFIG } from "@/configs/constants";
@@ -15,6 +15,8 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
     const [lastUpdated, setLastUpdated] = useState<number | null>(null);
     const [failedIds, setFailedIds] = useState<Set<string>>(new Set());
     const [marketList, setMarketList] = useState<Coin[]>([])
+    const [searchIndex, setSearchIndex] = useState<SearchIndex[]>([])
+    const [isSearchIndexLoading, setIsSearchIndexLoading] = useState(true)
 
     const lastFetched = useRef<number>(0);
     const abortRef = useRef<AbortController | null>(null);
@@ -24,7 +26,9 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
     const errorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 
-
+    useEffect(() => {
+        fetchSearchIndex()
+    }, [])
 
     useEffect(() => { coinsRef.current = coins }, [coins])
 
@@ -68,10 +72,22 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
         setLastUpdated(Date.now());
     }, [page]);
 
-    
+    const showError = useCallback((message: string, timeout = 5000) => {
+        setError(message);
+
+        if (errorTimeoutRef.current) {
+            clearTimeout(errorTimeoutRef.current);
+        }
+
+        errorTimeoutRef.current = setTimeout(() => {
+            setError(null);
+            errorTimeoutRef.current = null;
+        }, timeout);
+    }, []);
+
     const executeRequest = useCallback(
         async <T,>(requestFn: () => Promise<T>): Promise<RequestResult<T>> => {
-            
+
             const limit = apiGuards.canMakeRequest(lastFetched.current);
 
             if (!limit.allowed) {
@@ -87,7 +103,7 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
             try {
                 const result = await requestFn();
                 lastFetched.current = Date.now();
-                
+
                 return {
                     status: "success",
                     data: result,
@@ -96,11 +112,11 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
                 if (error instanceof Error && error.name === "AbortError") {
                     return { status: "aborted" };
                 }
-                
+
                 showError(
                     error instanceof Error && error.message === "RATE_LIMIT"
-                    ? "Too many requests"
-                    : "Network error"
+                        ? "Too many requests"
+                        : "Network error"
                 );
 
                 return { status: "error" };
@@ -108,21 +124,9 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
                 setIsLoading(false);
             }
         },
-        []
+        [showError]
     );
-    
-    const showError = useCallback((message: string, timeout = 5000) => {
-        setError(message);
 
-        if (errorTimeoutRef.current) {
-            clearTimeout(errorTimeoutRef.current);
-        }
-
-        errorTimeoutRef.current = setTimeout(() => {
-            setError(null);
-            errorTimeoutRef.current = null;
-        }, timeout);
-    }, [executeRequest]);
 
 
     const fetchMarketData = useCallback(async (force = false) => {
@@ -194,6 +198,37 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
         [executeRequest, updateCoinsState]
     );
 
+    const fetchSearchIndex = useCallback(async () => {
+        setIsSearchIndexLoading(true)
+
+        try {
+            const url = new URL(
+                API_CONFIG.ENDPOINT,
+                API_CONFIG.BASE_URL
+            )
+
+            url.search = new URLSearchParams({
+                vs_currency: MARKET_CONFIG.DEFAULT_CURRENCY,
+                per_page: "250",
+            }).toString()
+
+            const res = await fetch(url.toString())
+
+            if (!res.ok) {
+                throw new Error(`Search index failed: ${res.status}`)
+            }
+
+            const data = await res.json()
+            setSearchIndex(data)
+        } catch (err) {
+            console.error("[SearchIndex]", err)
+            showError("Search is temporarily unavailable", 3000)
+        } finally {
+            setIsSearchIndexLoading(false)
+        }
+    }, [showError])
+
+
 
     const ensureCoinsLoaded = useCallback(async (ids: string[]) => {
 
@@ -241,10 +276,12 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
 
     const value: ICryptoContext = {
         coins,
+        searchIndex,
         isLoading,
         error,
         marketList,
         page,
+        isSearchIndexLoading,
         setPage,
         resetApp,
         lastUpdated,
@@ -254,6 +291,7 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
         fetchCoinById,
         ensureCoinsLoaded,
         fetchExtraCoinsByIds,
+
     };
 
     return <CryptoContext.Provider value={value}>{children}</CryptoContext.Provider>;

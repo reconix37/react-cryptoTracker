@@ -4,10 +4,13 @@ import { Link, NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Moon, Sun, Star } from "lucide-react";
 import { usePortfolioData } from "@/providers/PortfolioProvider";
+import { useAuth } from "@/providers/AuthProvider";
+import GlobalSearch from "./GlobalSearch";
 
 export default function NavBar() {
     const { watchlist } = usePortfolioData()
     const { theme, toggleTheme } = useThemes();
+    const { isAuthenticated } = useAuth()
 
     return (
         <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md transition-colors duration-300">
@@ -40,16 +43,34 @@ export default function NavBar() {
                         >
                             Portfolio
                         </NavLink>
+                        <NavLink
+                            to="/watchlist"
+                            className={({ isActive }) =>
+                                isActive
+                                    ? "text-blue-600 font-bold"
+                                    : "text-muted-foreground hover:text-foreground transition-colors"
+                            }
+                        >
+                            Watchlist
+                        </NavLink>
                     </div>
                 </div>
 
+                <div className="flex items-center gap-3 max-w-md w-full">
+                    <GlobalSearch />
+                </div>
+
+
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 bg-blue-500/10 dark:bg-blue-500/20 px-3 py-1.5 rounded-full border border-blue-500/20">
-                        <Star className="w-4 h-4 text-blue-600 dark:text-blue-400 fill-current" />
-                        <span className="text-blue-600 dark:text-blue-400 text-sm font-bold">
-                            {watchlist.length}
-                        </span>
-                    </div>
+                    {isAuthenticated &&
+                        <div className="flex items-center gap-2 bg-blue-500/10 dark:bg-blue-500/20 px-3 py-1.5 rounded-full border border-blue-500/20">
+                            <Star className="w-4 h-4 text-blue-600 dark:text-blue-400 fill-current" />
+                            <span className="text-blue-600 dark:text-blue-400 text-sm font-bold">
+                                {watchlist.length}
+                            </span>
+                        </div>
+                    }
+
 
                     <Button
                         variant="ghost"

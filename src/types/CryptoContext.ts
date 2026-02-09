@@ -1,4 +1,4 @@
-import type { Coin } from "./Coin";
+import type { Coin, SearchIndex } from "./Coin";
 import type { RequestResult } from "./RequestResult";
 
 export interface CryptoContext {
@@ -8,6 +8,8 @@ export interface CryptoContext {
     error: string | null;
     lastUpdated: number | null;
     marketList: Coin[];
+    searchIndex: SearchIndex[];
+    isSearchIndexLoading: boolean;
 
     page: number;
     setPage: React.Dispatch<React.SetStateAction<number>>;

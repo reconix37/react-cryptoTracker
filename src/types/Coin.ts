@@ -26,12 +26,8 @@ export type CoinDetails = {
         market_cap: {
             usd: number;
         };
-        high_24h: {
-            usd: number;
-        };
-        low_24h: {
-            usd: number;
-        };
         price_change_percentage_24h: number;
     };
 }
+
+export type SearchIndex = Pick<Coin, "id" | "name" | "symbol" | "image">
