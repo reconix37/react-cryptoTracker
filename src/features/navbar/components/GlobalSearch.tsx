@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom"
 import type { SearchIndex } from "@/types/Coin"
 import { Button } from "@/components/ui/button"
 import { Loader2, Search } from "lucide-react"
+import { formatCurrency } from "@/utils/formatCurrency"
 
 export default function GlobalSearch() {
     const [open, setOpen] = useState(false)
@@ -76,17 +77,16 @@ export default function GlobalSearch() {
                 />
 
                 <CommandList>
+                    {!isSearchIndexLoading && results.length === 0 && (
+                        <CommandEmpty>No coins found.</CommandEmpty>
+                    )}
+                    
                     {isSearchIndexLoading && (
                         <div className="flex items-center justify-center py-6 text-muted-foreground gap-2 text-sm">
                             <Loader2 className="h-4 w-4 animate-spin" />
                             Loading search index…
                         </div>
                     )}
-
-                    {!isSearchIndexLoading && results.length === 0 && (
-                        <CommandEmpty>No coins found.</CommandEmpty>
-                    )}
-
 
                     {!isSearchIndexLoading && results.length > 0 && (
                         <CommandGroup heading="Coins">
@@ -105,6 +105,7 @@ export default function GlobalSearch() {
                                     <span className="ml-auto text-xs text-muted-foreground uppercase">
                                         {coin.symbol}
                                     </span>
+                                    <span>{formatCurrency(coin.current_price)}</span>
                                 </CommandItem>
                             ))}
                         </CommandGroup>

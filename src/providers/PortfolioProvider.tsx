@@ -7,6 +7,8 @@ import { db } from "@/services/firebase";
 import { useCrypto } from "./CryptoProvider";
 import { toast } from "sonner";
 import type { AssetsTransactions } from "@/types/TransactoionsAsset";
+import type { AllocationItem } from "@/types/AllcoationItem";
+import type { EnrichedAsset } from "@/types/EnrichedAsset";
 
 const PortfolioContext = createContext<IPortfolioContext | undefined>(undefined);
 
@@ -92,12 +94,52 @@ export default function PortfolioProvider({ children }: { children: React.ReactN
         });
     }, [assets, coins]);
 
-
-    const stats = useMemo(() => {
-        const totalBalance = enrichedAssets.reduce(
+    const totalBalance = useMemo(() => {
+        return enrichedAssets.reduce(
             (sum, asset) => sum + asset.totalValue,
             0
         );
+    }, [enrichedAssets]);
+
+    const allocation = useMemo<AllocationItem[]>(() => {
+        if (!enrichedAssets.length || totalBalance === 0) return [];
+
+        const sorted = [...enrichedAssets].sort(
+            (a, b) => b.totalValue - a.totalValue
+        );
+
+        const top = sorted.slice(0, 5);
+        const rest = sorted.slice(5);
+
+        const othersValue = rest.reduce(
+            (sum, asset) => sum + asset.totalValue,
+            0
+        );
+
+        const result: AllocationItem[] = top.map(asset => ({
+            id: asset.id,
+            name: asset.name ?? asset.id,
+            value: asset.totalValue,
+            percent: (asset.totalValue / totalBalance) * 100,
+        }));
+
+        if (othersValue > 0) {
+            result.push({
+                id: "others",
+                name: "Others",
+                value: othersValue,
+                percent: (othersValue / totalBalance) * 100,
+            });
+        }
+
+        return result;
+    }, [enrichedAssets, totalBalance]);
+
+    const profitableAssetsCount = useMemo(() => {
+        return enrichedAssets.filter(a => a.profitValue > 0).length;
+    }, [enrichedAssets]);
+
+    const stats = useMemo(() => {
 
         const totalInvested = enrichedAssets.reduce(
             (sum, asset) => sum + asset.invested,
@@ -105,7 +147,8 @@ export default function PortfolioProvider({ children }: { children: React.ReactN
         );
 
         const totalProfitValue = totalBalance - totalInvested;
-        const totalProfitPercent = totalInvested > 0 ? (totalProfitValue / totalInvested) * 100 : 0;
+        const totalProfitPercent =
+            totalInvested > 0 ? (totalProfitValue / totalInvested) * 100 : 0;
 
         const totalChange = enrichedAssets.reduce(
             (sum, asset) =>
@@ -120,13 +163,28 @@ export default function PortfolioProvider({ children }: { children: React.ReactN
                 ? (totalChange / previousBalance) * 100
                 : 0;
 
-        const bestPerformer = enrichedAssets.reduce((best, asset) => {
-            return (best === null || asset.profitPercent > best.profitPercent) ? asset : best;
-        }, null as (typeof enrichedAssets)[0] | null);
+        const profitableAssets = enrichedAssets.filter(
+            asset => asset.profitValue > 0
+        );
 
-        const worstPerformer = enrichedAssets.reduce((worst, asset) => {
-            return (worst === null || asset.profitPercent < worst.profitPercent) ? asset : worst;
-        }, null as (typeof enrichedAssets)[0] | null);
+        const losingAssets = enrichedAssets.filter(
+            asset => asset.profitValue < 0
+        );
+
+        const bestPerformer =
+            profitableAssets.length > 0
+                ? profitableAssets.reduce((best, asset) =>
+                    asset.profitValue > best.profitValue ? asset : best
+                )
+                : null;
+
+        const worstPerformer =
+            losingAssets.length > 0
+                ? losingAssets.reduce((worst, asset) =>
+                    asset.profitValue < worst.profitValue ? asset : worst
+                )
+                : null;
+
 
         return {
             totalBalance,
@@ -134,13 +192,15 @@ export default function PortfolioProvider({ children }: { children: React.ReactN
             totalProfitValue,
             totalProfitPercent,
             totalChange,
+            profitableAssetsCount,
             totalChangePercent,
+            allocation,
             bestPerformer,
             worstPerformer,
             isProfit: totalProfitValue >= 0,
-            isDailyProfit: totalChange >= 0
+            isDailyProfit: totalChange >= 0,
         };
-    }, [enrichedAssets]);
+    }, [enrichedAssets, totalBalance, allocation]);
 
     const share = useMemo(() => {
         const result: Record<string, number> = {};

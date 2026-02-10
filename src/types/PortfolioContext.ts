@@ -1,6 +1,7 @@
 import type { EnrichedAsset } from "@/types/EnrichedAsset";
 import type { AssetsTransactions } from "./TransactoionsAsset";
 import type { PortfolioAsset } from "./PortfolioAsset";
+import type { AllocationItem } from "./AllcoationItem";
 
 export interface PortfolioContext {
     enrichedAssets: EnrichedAsset[];
@@ -17,6 +18,8 @@ export interface PortfolioContext {
         totalProfitPercent: number;
         totalChange: number;
         totalChangePercent: number;
+        allocation: AllocationItem[];
+        profitableAssetsCount: number;
 
         bestPerformer: EnrichedAsset | null;
         worstPerformer: EnrichedAsset | null;

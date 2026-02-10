@@ -29,11 +29,11 @@ export default function Profile() {
     share,
     coins,
     lastUpdated,
-    logout, 
+    logout,
     user,
   } = usePortfolio();
 
-  
+
   const formatted = new Date(lastUpdated ?? Date.now()).toLocaleTimeString();
 
   return (
@@ -108,38 +108,6 @@ export default function Profile() {
                   </span>
                 </div>
               </div>
-              {assets.length > 0 && (
-                <div className="mt-6 pt-6 border-t border-border/50 space-y-4">
-                  {stats.bestPerformer && stats.bestPerformer.priceChange > 0 && (
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <TrendingUp className="h-3 w-3 text-emerald-500" />
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase">Top Gainer</span>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs font-black uppercase">{stats.bestPerformer.id.toUpperCase()}</p>
-                        <p className="text-xs font-bold text-emerald-500">
-                          +{stats.bestPerformer.priceChange.toFixed(2)}%
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  {stats.worstPerformer && stats.worstPerformer.priceChange < 0 && (
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <TrendingDown className="h-3 w-3 text-rose-500" />
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase">Top Loser</span>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs font-black uppercase">{stats.worstPerformer.id.toUpperCase()}</p>
-                        <p className="text-xs font-bold text-rose-500">
-                          {stats.worstPerformer.priceChange.toFixed(2)}%
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
             </CardContent>
           </Card>
 
@@ -159,9 +127,81 @@ export default function Profile() {
         <motion.div className="md:col-span-2" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
 
           <div className="bg-card p-6 rounded-xl shadow-md border h-full min-h-[600px] flex items-center justify-center">
-            <PortfolioChart data={chartData} />
+            <PortfolioChart data={stats.allocation} />
           </div>
         </motion.div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm uppercase text-muted-foreground">
+              Biggest Profit
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {stats.bestPerformer ? (
+              <div className="flex items-center gap-3">
+                <img
+                  src={stats.bestPerformer?.image ?? undefined}
+                  alt={stats.bestPerformer?.name ?? "Asset"}
+                  className="w-8 h-8 rounded-full"
+                />
+
+                <div>
+                  <p className="font-bold">{stats.bestPerformer.name}</p>
+                  <p className="text-emerald-500 font-semibold">
+                    +{formatCurrency(stats.bestPerformer.profitValue)}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm">No profits yet</p>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm uppercase text-muted-foreground">
+              Biggest Loss
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {stats.worstPerformer ? (
+              <div className="flex items-center gap-3">
+                <img
+                  src={stats.worstPerformer?.image ?? undefined}
+                  alt={stats.worstPerformer?.name ?? "Asset"}
+                  className="w-8 h-8 rounded-full"
+                />
+
+                <div>
+                  <p className="font-bold">{stats.worstPerformer.name}</p>
+                  <p className="text-rose-500 font-semibold">
+                    {formatCurrency(stats.worstPerformer.profitValue)}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm">No losses</p>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm uppercase text-muted-foreground">
+              Portfolio Health
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-lg font-bold">
+              {stats.totalProfitPercent.toFixed(2)}%
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {stats.profitableAssetsCount} / {assets.length} assets in profit
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="bg-card rounded-2xl shadow-md border overflow-hidden">

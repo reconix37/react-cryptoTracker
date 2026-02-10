@@ -23,7 +23,7 @@ const canMakeRequest = (lastFetchedTime: number): { allowed: boolean; waitTime?:
 };
 
 export const fetchCoinGecko = async (endpoint: string, params: Record<string, string>, signal?: AbortSignal) => {
-    const url = new URL(`${API_CONFIG.BASE_URL}/${endpoint}`);
+    const url = new URL(`${API_CONFIG.BASE_URL}${endpoint}`);
     Object.entries(params).forEach(([key, value]) => url.searchParams.append(key, value));
 
     globalRequestQueue.push(Date.now());

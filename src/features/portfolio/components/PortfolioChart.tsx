@@ -1,14 +1,10 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import { useThemes } from "@/globalHooks/useThemes";
+import type { AllocationItem } from "@/types/AllcoationItem";
 
-interface ChartData {
-  name: string;
-  value: number;
-  [key: string]: any;
-}
 
 interface PortfolioChartProps {
-  data: ChartData[];
+   data: AllocationItem[];
 }
 
 const COLORS = [
@@ -28,14 +24,6 @@ export default function PortfolioChart({ data }: PortfolioChartProps) {
   const cleanData = data?.filter(item => item.value > 0) || [];
 
   if (cleanData.length === 0) {
-    return (
-      <div className="h-[480px] w-full flex items-center justify-center text-muted-foreground italic">
-        No asset data available to display.
-      </div>
-    );
-  }
-
-  if (!data || data.length === 0) {
     return (
       <div className="h-[480px] w-full flex items-center justify-center text-muted-foreground italic">
         No asset data available to display.
