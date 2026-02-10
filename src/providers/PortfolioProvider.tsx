@@ -8,7 +8,6 @@ import { useCrypto } from "./CryptoProvider";
 import { toast } from "sonner";
 import type { AssetsTransactions } from "@/types/TransactoionsAsset";
 import type { AllocationItem } from "@/types/AllcoationItem";
-import type { EnrichedAsset } from "@/types/EnrichedAsset";
 
 const PortfolioContext = createContext<IPortfolioContext | undefined>(undefined);
 

@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Wallet, CircleDollarSign, Trash2, Search, TrendingUp, TrendingDown, History } from "lucide-react";
+import { Wallet, CircleDollarSign, Trash2, Search, History } from "lucide-react";
 import AddAssetDialog from "@/features/markets/components/AddAssetDialog";
 import PortfolioChart from "@/features/portfolio/components/PortfolioChart";
 import { usePortfolio } from "@/features/portfolio/hooks/usePortfolio";
@@ -24,7 +24,6 @@ export default function Profile() {
     deleteAsset,
     searchQuery,
     setSearchQuery,
-    chartData,
     transactions,
     share,
     coins,
