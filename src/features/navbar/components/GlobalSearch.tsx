@@ -6,10 +6,14 @@ import type { SearchIndex } from "@/types/Coin"
 import { Button } from "@/components/ui/button"
 import { Loader2, Search } from "lucide-react"
 import { formatCurrency } from "@/utils/formatCurrency"
+import { useDebounce } from "@/globalHooks/useDebounce"
+import { cn } from "@/lib/utils"
 
 export default function GlobalSearch() {
     const [open, setOpen] = useState(false)
     const [query, setQuery] = useState("")
+
+    const debouncedQuery = useDebounce(query, 300)
 
     const { searchIndex, isSearchIndexLoading } = useCrypto()
     const navigate = useNavigate()
@@ -27,22 +31,24 @@ export default function GlobalSearch() {
     }, [])
 
     const results = useMemo(() => {
-        if (!query) return searchIndex.slice(0, 10)
+        if (!query.trim()) return searchIndex.slice(0, 10);
 
-        const q = query.toLowerCase()
+        if (!debouncedQuery.trim()) return [];
 
+        const q = debouncedQuery.toLowerCase();
         return searchIndex.filter(
             (coin) =>
                 coin.name.toLowerCase().includes(q) ||
                 coin.symbol.toLowerCase().includes(q)
-        )
-    }, [searchIndex, query])
-
+        );
+    }, [searchIndex, debouncedQuery, query]);
     const handleSelect = (coin: SearchIndex) => {
         setOpen(false)
         setQuery("")
         navigate(`/coin/${coin.id}`)
     }
+
+    const isNotFound = !isSearchIndexLoading && query !== "" && debouncedQuery === query && results.length === 0;
 
     return (
         <div className="flex flex-col gap-4">
@@ -69,30 +75,27 @@ export default function GlobalSearch() {
             >
                 <Search className="h-5 w-5" />
             </Button>
-            <CommandDialog open={open} onOpenChange={setOpen}>
+            <CommandDialog open={open} onOpenChange={setOpen} >
                 <CommandInput
                     placeholder="Search coins…"
                     value={query}
                     onValueChange={setQuery}
                 />
 
-                <CommandList>
-                    {!isSearchIndexLoading && results.length === 0 && (
-                        <CommandEmpty>No coins found.</CommandEmpty>
-                    )}
-                    
-                    {isSearchIndexLoading && (
-                        <div className="flex items-center justify-center py-6 text-muted-foreground gap-2 text-sm">
+                <CommandList className="h-[400px] overflow-y-auto">
+                    {isSearchIndexLoading ? (
+                        <div className="flex h-full items-center justify-center text-muted-foreground gap-2 text-sm">
                             <Loader2 className="h-4 w-4 animate-spin" />
                             Loading search index…
                         </div>
-                    )}
-
-                    {!isSearchIndexLoading && results.length > 0 && (
-                        <CommandGroup heading="Coins">
+                    ) : isNotFound ? (
+                        <CommandEmpty>No coins found for "{query}".</CommandEmpty>
+                    ) : (
+                        <CommandGroup heading={query === "" ? "Trending Coins" : "Search Results"}>
                             {results.map((coin) => (
                                 <CommandItem
                                     key={coin.id}
+                                    value={coin.id}
                                     onSelect={() => handleSelect(coin)}
                                     className="flex items-center gap-3 cursor-pointer"
                                 >
@@ -105,7 +108,16 @@ export default function GlobalSearch() {
                                     <span className="ml-auto text-xs text-muted-foreground uppercase">
                                         {coin.symbol}
                                     </span>
-                                    <span>{formatCurrency(coin.current_price)}</span>
+                                    <span className="text-sm font-mono tabular-nums">
+                                        {formatCurrency(coin.current_price)}
+                                    </span>
+                                    <span className={cn(
+                                        "text-xs w-16 text-right",
+                                        coin.price_change_percentage_24h > 0 ? "text-emerald-500" : "text-rose-500"
+                                    )}>
+                                        {coin.price_change_percentage_24h > 0 ? "+" : ""}
+                                        {coin.price_change_percentage_24h?.toFixed(2)}%
+                                    </span>
                                 </CommandItem>
                             ))}
                         </CommandGroup>

@@ -11,6 +11,7 @@ import { ProtectedRoute } from './features/auth/components/ProtectedRoute';
 import Auth from './pages/Auth';
 import PortfolioProvider from './providers/PortfolioProvider';
 import WatchList from './pages/Watchlist';
+import NotFound from './pages/NotFound';
 
 function App() {
   return (
@@ -24,10 +25,11 @@ function App() {
               <Route path='/auth' element={<Auth />} />
               <Route path="/" element={<Markets />} />
               <Route path="/coin/:id" element={<CoinPages />} />
-              <Route path="/watchlist" element={<WatchList />} />
               <Route element={<ProtectedRoute />}>
+                <Route path="/watchlist" element={<WatchList />} />
                 <Route path="/profile" element={<Profile />} />
               </Route>
+              <Route path='*' element={<NotFound />}/>
             </Routes>
           </BrowserRouter>
         </PortfolioProvider>

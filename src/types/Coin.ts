@@ -30,4 +30,4 @@ export type CoinDetails = {
     };
 }
 
-export type SearchIndex = Pick<Coin, "id" | "name" | "symbol" | "image" | "current_price">
+export type SearchIndex = Omit<Coin, "market_cap">

@@ -1,10 +1,11 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import { useThemes } from "@/globalHooks/useThemes";
 import type { AllocationItem } from "@/types/AllcoationItem";
+import CustomTooltip from "./CustomToolTip";
 
 
 interface PortfolioChartProps {
-   data: AllocationItem[];
+  data: AllocationItem[];
 }
 
 const COLORS = [
@@ -58,17 +59,7 @@ export default function PortfolioChart({ data }: PortfolioChartProps) {
               ))}
             </Pie>
 
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "hsl(var(--popover))",
-                borderColor: "hsl(var(--border))",
-                borderRadius: "8px",
-                color: "hsl(var(--popover-foreground))",
-              }}
-              itemStyle={{ color: "hsl(var(--popover-foreground))" }}
-              cursor={{ fill: 'transparent' }}
-              formatter={(value: number | undefined) => [`$${(value ?? 0).toLocaleString()}`, "Value"]}
-            />
+            <Tooltip content={CustomTooltip} cursor={{ fill: "transparent" }} />
             <Legend
               verticalAlign="bottom"
               height={40}

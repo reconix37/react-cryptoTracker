@@ -43,7 +43,7 @@ export default function NavBar() {
                         >
                             Portfolio
                         </NavLink>
-                        <NavLink
+                        {isAuthenticated && <NavLink
                             to="/watchlist"
                             className={({ isActive }) =>
                                 isActive
@@ -52,7 +52,7 @@ export default function NavBar() {
                             }
                         >
                             Watchlist
-                        </NavLink>
+                        </NavLink>}
                     </div>
                 </div>
 

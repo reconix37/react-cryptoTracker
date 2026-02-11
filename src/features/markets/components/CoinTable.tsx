@@ -18,11 +18,12 @@ interface CoinTableProps {
     watchlist: string[];
     onToggleWatchlist: (id: string) => void;
     isLoading: boolean;
+    isAuthenticated?: boolean;
     renderEmptyState?: () => React.ReactNode;
 }
 
 
-export default function CoinTable({ coins, watchlist, onToggleWatchlist, isLoading, renderEmptyState }: CoinTableProps) {
+export default function CoinTable({ coins, watchlist, onToggleWatchlist, isLoading, renderEmptyState, isAuthenticated }: CoinTableProps) {
 
     const navigate = useNavigate();
 
@@ -34,7 +35,7 @@ export default function CoinTable({ coins, watchlist, onToggleWatchlist, isLoadi
         <Table className="w-full border border-border rounded-xl overflow-hidden">
             <TableHeader className="bg-secondary/50">
                 <TableRow>
-                    <TableHead></TableHead>
+                    {isAuthenticated && <TableHead></TableHead>}
                     <TableHead>Name</TableHead>
                     <TableHead>Price</TableHead>
                     <TableHead>24h Change</TableHead>
@@ -57,20 +58,21 @@ export default function CoinTable({ coins, watchlist, onToggleWatchlist, isLoadi
                             onClick={() => navigate(`/coin/${coin.id}`)}
                             className="cursor-pointer transition-colors hover:bg-accent active:bg-accent/70"
                         >
-                            <TableCell className="pr-0">
-                                <Star
-                                    className={cn(
-                                        "w-5 h-5 md:w-6 md:h-6 pl-2 cursor-pointer transition-all",
-                                        watchlist.includes(coin.id)
-                                            ? "text-yellow-400 fill-yellow-400"
-                                            : "text-muted-foreground hover:text-yellow-400"
-                                    )}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onToggleWatchlist(coin.id);
-                                    }}
-                                />
-                            </TableCell>
+                            {isAuthenticated &&
+                                <TableCell className="pr-0">
+                                    <Star
+                                        className={cn(
+                                            "w-5 h-5 md:w-6 md:h-6 pl-2 cursor-pointer transition-all",
+                                            watchlist.includes(coin.id)
+                                                ? "text-yellow-400 fill-yellow-400"
+                                                : "text-muted-foreground hover:text-yellow-400"
+                                        )}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onToggleWatchlist(coin.id);
+                                        }}
+                                    />
+                                </TableCell>}
 
                             <TableCell className="flex items-center gap-3 font-medium">
                                 <img
@@ -90,6 +92,7 @@ export default function CoinTable({ coins, watchlist, onToggleWatchlist, isLoadi
                             <TableCell>
                                 ${coin.current_price.toLocaleString()}
                             </TableCell>
+                            
 
                             <TableCell
                                 className={

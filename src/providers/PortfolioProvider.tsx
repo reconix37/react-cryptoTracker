@@ -294,18 +294,21 @@ export default function PortfolioProvider({ children }: { children: React.ReactN
         const userRef = doc(db, "users", user.id)
         const exists = watchlist.includes(coinId);
 
-        if (exists) {
-            await updateDoc(userRef, {
-                watchlist: arrayRemove(coinId),
-            })
-        }
+        const previousWatchlist = watchlist;
 
-        if (!exists) {
-            await updateDoc(userRef, {
-                watchlist: arrayUnion(coinId),
-            })
-        }
+        const updatedWatchlist = exists ? watchlist.filter(id => id !== coinId) : [...watchlist, coinId]
 
+        setWatchlist(updatedWatchlist)
+
+        try {
+            await updateDoc(userRef, {
+                watchlist: exists
+                    ? arrayRemove(coinId)
+                    : arrayUnion(coinId),
+            });
+        } catch (error) {
+            setWatchlist(previousWatchlist);
+        }
     }
 
 

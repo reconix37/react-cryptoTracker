@@ -3,6 +3,7 @@ import { useCrypto } from "@/providers/CryptoProvider";
 import type { Coin } from "@/types/Coin";
 import { usePortfolioData } from "@/providers/PortfolioProvider";
 import { useCooldown } from "../../../globalHooks/useCoolDown";
+import { useAuth } from "@/providers/AuthProvider";
 
 export function useMarkets() {
 
@@ -13,6 +14,7 @@ export function useMarkets() {
 
     const { isLoading, error, coins, marketList, page, setPage, refreshData, resetApp, ensureCoinsLoaded } = useCrypto();
     const { watchlist, toggleWatchlist } = usePortfolioData()
+    const {isAuthenticated} = useAuth()
 
     useEffect(() => {
         document.title = "Markets | CryptoTracker";
@@ -73,6 +75,7 @@ export function useMarkets() {
         error,
         marketList,
         isEmpty,
+        isAuthenticated,
         setSearch,
         setFilter,
         toggleWatchlist,

@@ -1,4 +1,5 @@
 import CoinTable from "@/features/markets/components/CoinTable"
+import { useAuth } from "@/providers/AuthProvider"
 import { useCrypto } from "@/providers/CryptoProvider"
 import { usePortfolioData } from "@/providers/PortfolioProvider"
 import { motion } from "framer-motion"
@@ -8,6 +9,7 @@ export default function WatchList() {
 
     const { watchlist, toggleWatchlist, isLoading } = usePortfolioData()
     const { coins } = useCrypto()
+    const {isAuthenticated} = useAuth()
 
     const watchlistCoins = watchlist.map(id => coins[id]).filter(Boolean)
 
@@ -32,6 +34,7 @@ export default function WatchList() {
                             onToggleWatchlist={toggleWatchlist}
                             watchlist={watchlist}
                             isLoading={isLoading}
+                            isAuthenticated={isAuthenticated}
                             renderEmptyState={() => (
                                 <div className="flex flex-col items-center justify-center gap-4 text-muted-foreground py-12">
                                     <div className="rounded-full bg-secondary p-4">
