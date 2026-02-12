@@ -199,34 +199,28 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
     );
 
     const fetchSearchIndex = useCallback(async () => {
-        setIsSearchIndexLoading(true)
+        setIsSearchIndexLoading(true);
 
         try {
-            const url = new URL(
-                API_CONFIG.ENDPOINT,
-                API_CONFIG.BASE_URL
-            )
+            const url = new URL(API_CONFIG.BASE_URL, window.location.origin);
+            url.searchParams.append('path', API_CONFIG.ENDPOINT);
+            url.searchParams.append('vs_currency', MARKET_CONFIG.DEFAULT_CURRENCY);
+            url.searchParams.append('per_page', '250');
+            url.searchParams.append('order', 'market_cap_desc');
 
-            url.search = new URLSearchParams({
-                vs_currency: MARKET_CONFIG.DEFAULT_CURRENCY,
-                per_page: "250",
-            }).toString()
+            const res = await window.fetch(url.toString());
 
-            const res = await fetch(url.toString())
+            if (!res.ok) throw new Error(`Search index status: ${res.status}`);
 
-            if (!res.ok) {
-                throw new Error(`Search index failed: ${res.status}`)
-            }
-
-            const data = await res.json()
-            setSearchIndex(data)
+            const data = await res.json();
+            setSearchIndex(data);
         } catch (err) {
-            console.error("[SearchIndex]", err)
-            showError("Search is temporarily unavailable", 3000)
+            console.error("[SearchIndex Silent Fetch Error]:", err);
+            showError("Search temporarily unavailable", 3000);
         } finally {
-            setIsSearchIndexLoading(false)
+            setIsSearchIndexLoading(false);
         }
-    }, [showError])
+    }, [showError]);
 
 
 

@@ -1,6 +1,6 @@
 
 export const API_CONFIG = {
-  BASE_URL: 'https://api.coingecko.com/api/v3/',
+  BASE_URL: '/api/crypto',
   ENDPOINT: `coins/markets`,
   RATE_LIMIT_WINDOW: 60000,
   MAX_REQUESTS_PER_WINDOW: 8,
