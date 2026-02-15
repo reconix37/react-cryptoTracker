@@ -10,7 +10,7 @@ export function useCoinPages() {
 
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
-    const { getCoinById, fetchCoinById, isLoading, error, coins } = useCrypto();
+    const { getCoinById, fetchCoinById, isLoading, error, marketList } = useCrypto();
 
     const {
         toggleWatchlist,
@@ -29,7 +29,7 @@ export function useCoinPages() {
         if (id && !coinDetails) {
             fetchCoinById(id)
         }
-    }, [id, coinDetails]);
+    }, [id, coinDetails, fetchCoinById]);
 
     useEffect(() => {
         if (coinDetails) {
@@ -43,7 +43,6 @@ export function useCoinPages() {
 
     const myAsset = enrichedAssets.find((a) => a.id === id)
 
-
     return {
         coinDetails,
         error,
@@ -52,7 +51,7 @@ export function useCoinPages() {
         isAddDialogOpen,
         isAuthenticated,
         id,
-        coins,
+        marketList, 
         myAsset,
         addAsset,
         toggleWatchlist,

@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import {
     Field,
-    FieldDescription,
     FieldError,
     FieldGroup,
     FieldLabel,
@@ -96,7 +95,6 @@ export default function Auth() {
         <form className="min-h-screen flex items-center justify-center bg-background text-foreground" onSubmit={handleSubmit}>
             <FieldSet>
                 <FieldLegend className="text-3xl font-bold">{isLogin ? "Welcome Back" : "Create Account"}</FieldLegend>
-                <FieldDescription>This appears on invoices and emails.</FieldDescription>
                 <FieldGroup>
                     {!isLogin && (
                         <>

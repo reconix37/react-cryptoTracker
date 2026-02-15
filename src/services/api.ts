@@ -1,9 +1,11 @@
 import { API_CONFIG } from "@/configs/constants";
 
 const globalRequestQueue: number[] = [];
+const pendingRequests = new Map<string, Promise<any>>();
 
 const canMakeRequest = (lastFetchedTime: number): { allowed: boolean; waitTime?: number } => {
     const now = Date.now();
+
     while (globalRequestQueue.length > 0 && now - globalRequestQueue[0] > API_CONFIG.RATE_LIMIT_WINDOW) {
         globalRequestQueue.shift();
     }
@@ -30,18 +32,46 @@ export const fetchCoinGecko = async (endpoint: string, params: Record<string, st
         url.searchParams.append(key, value);
     });
 
-    globalRequestQueue.push(Date.now());
+    const requestKey = url.toString();
 
-    const response = await fetch(url.toString(), {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' },
-        signal
-    });
+    const pending = pendingRequests.get(requestKey);
+    if (pending) {
+        return pending;
+    }
 
-    if (response.status === 429) throw new Error("RATE_LIMIT");
-    if (!response.ok) throw new Error(`HTTP_ERROR_${response.status}`);
+    const requestPromise = (async () => {
+        try {
+            globalRequestQueue.push(Date.now());
 
-    return response.json();
+            const response = await fetch(requestKey, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' },
+                signal
+            });
+
+            if (response.status === 429) {
+                throw new Error("RATE_LIMIT");
+            }
+
+            if (!response.ok) {
+                throw new Error(`HTTP_ERROR_${response.status}`);
+            }
+
+            const data = await response.json();
+            return data;
+        } finally {
+  
+            pendingRequests.delete(requestKey);
+        }
+    })();
+
+    pendingRequests.set(requestKey, requestPromise);
+
+    return requestPromise;
 };
 
-export const apiGuards = { canMakeRequest, fetchCoinGecko };
+export const apiGuards = {
+    canMakeRequest,
+    fetchCoinGecko,
+    clearPendingRequests: () => pendingRequests.clear()
+};

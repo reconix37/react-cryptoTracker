@@ -1,5 +1,5 @@
 import type { HistoricDataPoint } from "@/types/CoinChart";
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -12,24 +12,21 @@ import {
     Filler,
     type ChartOptions
 } from 'chart.js';
-import { useCrypto } from "@/providers/CryptoProvider";
-import { fetchCoinGecko } from "@/services/api";
 import type { MarketChartResponse } from "@/types/MarketChartResponse";
 import type { ChartError } from "@/types/ChartError";
 import { MARKET_CONFIG } from "@/configs/constants";
+import { CACHE_CONFIG } from "@/configs/constants";
 
-ChartJS.register
-    (
-        CategoryScale,
-        LinearScale,
-        PointElement,
-        LineElement,
-        Title,
-        Tooltip,
-        Legend,
-        Filler,
-
-    );
+ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend,
+    Filler,
+);
 
 export function useCoinChart(coinId: string | undefined) {
 
@@ -42,87 +39,167 @@ export function useCoinChart(coinId: string | undefined) {
     const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isMounted = useRef(true);
 
-    const {
-        executeRequest,
-    } = useCrypto()
+    const chartCache = useRef<Map<string, { data: HistoricDataPoint[], timestamp: number }>>(new Map());
 
+    const lastFetchKey = useRef<string>('');
 
-    const fetchHistoricData = useCallback(async () => {
-        if (!coinId) return;
-
-        setLoading(true);
-        setError(null);
-
-        abortRef.current?.abort();
-        retryTimeoutRef.current && clearTimeout(retryTimeoutRef.current);
-
-        const controller = new AbortController();
-        abortRef.current = controller;
-
-
-        const result = await executeRequest<MarketChartResponse>(() =>
-            fetchCoinGecko(
-                `coins/${coinId}/market_chart`,
-                {
-                    vs_currency: MARKET_CONFIG.DEFAULT_CURRENCY,
-                    days: timeFrame,
-                },
-                controller.signal
-            )
-        );
-
-        if (!isMounted.current) return;
-
-        if (result.status === "success") {
-            setHistoricData(
-                result.data.prices.map(([time, price]) => ({ time, price }))
-            );
-            setLoading(false);
-            return;
-        }
-
-        if (result.status === "rate_limit") {
-            setError({ type: "rate_limit", retryAfter: result.retryAfter });
-
-            retryTimeoutRef.current = setTimeout(() => {
-                if (isMounted.current) fetchHistoricData();
-            }, result.retryAfter * 1000);
-
-            return;
-        }
-
-        if (result.status === "aborted") {
-
-            return;
-        }
-
-        if (result.status === "error") {
-            setError({ type: "network" });
-            setLoading(false);
-        }
-    }, [coinId, timeFrame, executeRequest]);
+    const lastRequestTime = useRef<number>(0);
 
     useEffect(() => {
+        const fetchKey = `${coinId}-${timeFrame}`;
         isMounted.current = true;
 
-        fetchHistoricData();
+        if (!coinId) {
+            setLoading(false);
+            return;
+        }
+
+        const cached = chartCache.current.get(fetchKey);
+        const now = Date.now();
+
+        if (cached && (now - cached.timestamp < CACHE_CONFIG.CACHE_TTL)) {
+            setHistoricData(cached.data);
+            setLoading(false);
+            setError(null);
+            lastFetchKey.current = fetchKey;
+            return;
+        }
+        if (fetchKey === lastFetchKey.current && historicData.length > 0) {
+            return;
+        }
+
+        const timeSinceLastRequest = now - lastRequestTime.current;
+        if (timeSinceLastRequest < 2000) {
+            const waitTime = 2000 - timeSinceLastRequest;
+
+            const timer = setTimeout(() => {
+                setTimeFrame(prev => prev);
+            }, waitTime);
+
+            return () => clearTimeout(timer);
+        }
+
+        lastRequestTime.current = now;
+
+        (async () => {
+            setLoading(true);
+            setError(null);
+
+            if (abortRef.current) {
+                abortRef.current.abort();
+            }
+            if (retryTimeoutRef.current) {
+                clearTimeout(retryTimeoutRef.current);
+            }
+
+            const controller = new AbortController();
+            abortRef.current = controller;
+
+            try {
+                const url = new URL('/api/crypto', window.location.origin);
+                url.searchParams.append('path', `coins/${coinId}/market_chart`);
+                url.searchParams.append('vs_currency', MARKET_CONFIG.DEFAULT_CURRENCY);
+                url.searchParams.append('days', timeFrame);
+
+                const timeoutPromise = new Promise((_, reject) => {
+                    setTimeout(() => {
+                        controller.abort();
+                        reject(new Error('TIMEOUT'));
+                    }, 60000);
+                });
+
+                const fetchPromise = fetch(url.toString(), {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' },
+                    signal: controller.signal
+                });
+
+                const response = await Promise.race([fetchPromise, timeoutPromise]) as Response;
+
+                if (!response.ok) {
+                    if (response.status === 429) {
+                        throw new Error('RATE_LIMIT');
+                    }
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json() as MarketChartResponse;
+
+                const points = data.prices.map(([time, price]) => ({ time, price }));
+
+                chartCache.current.set(fetchKey, {
+                    data: points,
+                    timestamp: Date.now()
+                });
+
+                setHistoricData(points);
+                setLoading(false);
+                lastFetchKey.current = fetchKey;
+
+            } catch (error: any) {
+                if (error.name === 'AbortError' || error.message === 'TIMEOUT') {
+                    if (isMounted.current) {
+                        setError({ type: "network" });
+                        setLoading(false);
+                    }
+                    return;
+                }
+
+                if (error.message === 'RATE_LIMIT') {
+                    if (isMounted.current) {
+                        setError({ type: "rate_limit", retryAfter: 60 });
+                        setLoading(false);
+
+                        retryTimeoutRef.current = setTimeout(() => {
+                            if (isMounted.current) {
+                                lastFetchKey.current = '';
+                                lastRequestTime.current = 0;
+                                setTimeFrame(prev => prev);
+                            }
+                        }, 60000);
+                    }
+                    return;
+                }
+
+                if (isMounted.current) {
+                    setError({ type: "network" });
+                    setLoading(false);
+                }
+            }
+        })();
 
         return () => {
-            isMounted.current = false;
+            setTimeout(() => {
+                isMounted.current = false;
+            }, 100);
 
-            abortRef.current?.abort();
+            const hasCachedData = chartCache.current.has(fetchKey);
+            if (!hasCachedData) {
+                if (abortRef.current) {
+                    abortRef.current.abort();
+                }
+            } 
 
             if (retryTimeoutRef.current) {
                 clearTimeout(retryTimeoutRef.current);
             }
         };
-    }, [fetchHistoricData]);
+    }, [coinId, timeFrame]);
+
+
+    const fetchHistoricData = () => {
+        const fetchKey = `${coinId}-${timeFrame}`;
+        lastFetchKey.current = '';
+        lastRequestTime.current = 0;
+        chartCache.current.delete(fetchKey);
+        setLoading(true);
+        setError(null);
+        setTimeFrame(prev => prev);
+    };
 
     const isPriceUp = useMemo(() => {
         if (!historicData || historicData.length < 2) return null;
-
         return historicData.at(-1)!.price > historicData[0].price;
-
     }, [historicData]);
 
     const themeColor =
@@ -131,7 +208,6 @@ export function useCoinChart(coinId: string | undefined) {
             : isPriceUp
                 ? 'rgb(34, 197, 94)'
                 : 'rgb(239, 68, 68)';
-
 
     const chartData = useMemo(() => {
         return {
@@ -158,7 +234,6 @@ export function useCoinChart(coinId: string | undefined) {
     }, [historicData, timeFrame, themeColor, isPriceUp]);
 
     const options: ChartOptions<'line'> = useMemo(() => {
-
         return {
             responsive: true,
             maintainAspectRatio: false,
@@ -196,5 +271,18 @@ export function useCoinChart(coinId: string | undefined) {
         }
     }, []);
 
-    return { historicData, loading, timeFrame, isPriceUp, themeColor, chartData, options, error, setTimeFrame, fetchHistoricData, setError, setLoading };
+    return {
+        historicData,
+        loading,
+        timeFrame,
+        isPriceUp,
+        themeColor,
+        chartData,
+        options,
+        error,
+        setTimeFrame,
+        fetchHistoricData,
+        setError,
+        setLoading
+    };
 }

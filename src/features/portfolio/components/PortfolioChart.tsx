@@ -37,7 +37,7 @@ export default function PortfolioChart({ data }: PortfolioChartProps) {
       <h3 className="font-bold text-2xl mb-2 text-foreground/90 text-center shrink-0">
         Allocation by Value
       </h3>
-      <div className="flex-1">
+      <div className="flex-1 w-full" style={{ minHeight: 0 }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie

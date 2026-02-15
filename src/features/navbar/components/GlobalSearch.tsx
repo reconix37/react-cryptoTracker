@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem, } from "@/components/ui/command"
 import { useCrypto } from "@/providers/CryptoProvider"
 import { useNavigate } from "react-router-dom"
-import type { SearchIndex } from "@/types/Coin"
+import type { Coin } from "@/types/Coin"
 import { Button } from "@/components/ui/button"
 import { Loader2, Search } from "lucide-react"
 import { formatCurrency } from "@/utils/formatCurrency"
@@ -15,7 +15,7 @@ export default function GlobalSearch() {
 
     const debouncedQuery = useDebounce(query, 300)
 
-    const { searchIndex, isSearchIndexLoading } = useCrypto()
+    const { coins, marketList, isLoading } = useCrypto()
     const navigate = useNavigate()
 
     useEffect(() => {
@@ -30,25 +30,38 @@ export default function GlobalSearch() {
         return () => window.removeEventListener("keydown", handler)
     }, [])
 
+    const searchableCoins = useMemo(() => {
+        const coinsArray = Object.values(coins) as Coin[];
+
+        if (marketList.length > 0) {
+            return marketList;
+        }
+        return coinsArray.sort((a, b) => (b.market_cap || 0) - (a.market_cap || 0));
+    }, [coins, marketList]);
+
     const results = useMemo(() => {
-        if (!query.trim()) return searchIndex.slice(0, 10);
+        if (!query.trim()) return searchableCoins.slice(0, 10);
 
         if (!debouncedQuery.trim()) return [];
 
         const q = debouncedQuery.toLowerCase();
-        return searchIndex.filter(
+
+        return searchableCoins.filter(
             (coin) =>
                 coin.name.toLowerCase().includes(q) ||
-                coin.symbol.toLowerCase().includes(q)
-        );
-    }, [searchIndex, debouncedQuery, query]);
-    const handleSelect = (coin: SearchIndex) => {
+                coin.symbol.toLowerCase().includes(q) ||
+                coin.id.toLowerCase().includes(q)
+        ).slice(0, 20);
+    }, [searchableCoins, debouncedQuery, query]);
+
+    const handleSelect = (coin: Coin) => {
         setOpen(false)
         setQuery("")
         navigate(`/coin/${coin.id}`)
     }
 
-    const isNotFound = !isSearchIndexLoading && query !== "" && debouncedQuery === query && results.length === 0;
+    const isNotFound = !isLoading && query !== "" && debouncedQuery === query && results.length === 0;
+    const isSearching = isLoading && searchableCoins.length === 0;
 
     return (
         <div className="flex flex-col gap-4">
@@ -83,15 +96,15 @@ export default function GlobalSearch() {
                 />
 
                 <CommandList className="h-[400px] overflow-y-auto">
-                    {isSearchIndexLoading ? (
+                    {isSearching ? (
                         <div className="flex h-full items-center justify-center text-muted-foreground gap-2 text-sm">
                             <Loader2 className="h-4 w-4 animate-spin" />
-                            Loading search index…
+                            Loading coins…
                         </div>
                     ) : isNotFound ? (
                         <CommandEmpty>No coins found for "{query}".</CommandEmpty>
                     ) : (
-                        <CommandGroup heading={query === "" ? "Trending Coins" : "Search Results"}>
+                        <CommandGroup heading={query === "" ? "Top Coins" : `Results (${results.length})`}>
                             {results.map((coin) => (
                                 <CommandItem
                                     key={coin.id}
@@ -113,9 +126,9 @@ export default function GlobalSearch() {
                                     </span>
                                     <span className={cn(
                                         "text-xs w-16 text-right",
-                                        coin.price_change_percentage_24h > 0 ? "text-emerald-500" : "text-rose-500"
+                                        (coin.price_change_percentage_24h ?? 0) > 0 ? "text-emerald-500" : "text-rose-500"
                                     )}>
-                                        {coin.price_change_percentage_24h > 0 ? "+" : ""}
+                                        {(coin.price_change_percentage_24h ?? 0) > 0 ? "+" : ""}
                                         {coin.price_change_percentage_24h?.toFixed(2)}%
                                     </span>
                                 </CommandItem>

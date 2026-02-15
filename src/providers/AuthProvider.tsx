@@ -101,7 +101,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
             await signOut(auth);
             toast.success("Logged out");
         } catch (error) {
-            console.error(error);
+            toast.error("Something went wrong..")
         }
     }
 

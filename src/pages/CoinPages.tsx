@@ -11,7 +11,7 @@ export default function CoinPages() {
     const {
         coinDetails,
         error,
-        coins,
+        marketList,
         isLoading,
         isInWatchlist,
         id,
@@ -164,7 +164,7 @@ export default function CoinPages() {
                                                         "text-2xl font-black flex items-center gap-2",
                                                         (myAsset.profitValue) >= 0 ? "text-emerald-500" : "text-rose-500"
                                                     )}>
-                                                        <span>{(myAsset.profitValue) >= 0 ? "+" : "-"}$</span>
+                                                        <span>{(myAsset.profitValue) >= 0 ? "+" : ""}$</span>
                                                         <AnimatedNumber value={myAsset.profitValue} />
                                                     </div>
                                                     <p className={cn(
@@ -221,11 +221,13 @@ export default function CoinPages() {
                 open={isAddDialogOpen}
                 onOpenChange={setIsAddDialogOpen}
                 preselectedAssetId={id}
-                marketData={coins}
+                marketData={marketList}
                 onAdd={(data) => {
                     addAsset(data);
                     setIsAddDialogOpen(false);
-                }} isLoading={false} />
+                }}
+                isLoading={false}
+            />
         </div>
     )
 }

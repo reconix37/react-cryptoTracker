@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, createContext, useContext, type ReactNode, useEffect } from "react";
 import { fetchCoinGecko, apiGuards } from "@/services/api";
-import type { Coin, SearchIndex } from "@/types/Coin";
+import type { Coin } from "@/types/Coin";
 import type { CryptoContext as ICryptoContext } from "@/types/CryptoContext";
 import type { RequestResult } from "@/types/RequestResult";
 import { CACHE_CONFIG, MARKET_CONFIG, API_CONFIG } from "@/configs/constants";
@@ -15,22 +15,23 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
     const [lastUpdated, setLastUpdated] = useState<number | null>(null);
     const [failedIds, setFailedIds] = useState<Set<string>>(new Set());
     const [marketList, setMarketList] = useState<Coin[]>([])
-    const [searchIndex, setSearchIndex] = useState<SearchIndex[]>([])
-    const [isSearchIndexLoading, setIsSearchIndexLoading] = useState(true)
 
     const lastFetched = useRef<number>(0);
     const abortRef = useRef<AbortController | null>(null);
     const lastPageRef = useRef<number>(page)
     const coinsRef = useRef(coins)
+    const lastAttemptRef = useRef<number>(0);
+    const marketListRef = useRef<Coin[]>(marketList);
 
     const errorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    
+    const pendingRequests = useRef<Map<string, Promise<Coin[]>>>(new Map());
+    
+    const loadingCoins = useRef<Set<string>>(new Set());
 
-
-    useEffect(() => {
-        fetchSearchIndex()
-    }, [])
 
     useEffect(() => { coinsRef.current = coins }, [coins])
+    useEffect(() => { marketListRef.current = marketList }, [marketList])
 
     useEffect(() => {
         return () => {
@@ -41,36 +42,43 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const updateCoinsState = useCallback((incomingData: Coin[]) => {
+        const currentPage = lastPageRef.current;
+
         setCoins(prev => {
             const next = { ...prev };
-
             incomingData.forEach(coin => {
                 next[coin.id] = coin;
             });
-
             return next;
         });
 
-        if (page === 1) {
-            setMarketList(incomingData)
+        setMarketList(prev => {
+            if (currentPage === 1 && prev.length === 0) {
+                return incomingData;
+            }
+            
+            if (currentPage === 1 && prev.length > 0) {
 
-        } else if (page > 1) {
-            setMarketList(prev => {
-                const existing = new Set(prev.map(c => c.id));
-                const merged = [...prev];
-
-                incomingData.forEach(coin => {
-                    if (!existing.has(coin.id)) {
-                        merged.push(coin);
+                const updated = [...prev];
+                incomingData.forEach(newCoin => {
+                    const existingIndex = updated.findIndex(c => c.id === newCoin.id);
+                    if (existingIndex >= 0) {
+                        updated[existingIndex] = newCoin;
+                    } else {
+                        updated.push(newCoin);
                     }
                 });
 
-                return merged;
-            });
-        }
+                return updated;
+            }
+            
+            const existingIds = new Set(prev.map(c => c.id));
+            const newUniqueCoins = incomingData.filter(c => !existingIds.has(c.id));
+            return [...prev, ...newUniqueCoins];
+        });
 
         setLastUpdated(Date.now());
-    }, [page]);
+    }, []);
 
     const showError = useCallback((message: string, timeout = 5000) => {
         setError(message);
@@ -86,15 +94,16 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const executeRequest = useCallback(
-        async <T,>(requestFn: () => Promise<T>): Promise<RequestResult<T>> => {
-
+        async <T,>(requestFn: () => Promise<T>, retryCount = 0): Promise<RequestResult<T>> => {
+            lastAttemptRef.current = Date.now();
             const limit = apiGuards.canMakeRequest(lastFetched.current);
 
             if (!limit.allowed) {
-                showError(`Limit! Wait ${limit.waitTime} s.`);
+                const waitTime = limit.waitTime ?? 5;
+                showError(`Rate limit - wait ${waitTime}s`);
                 return {
                     status: "rate_limit",
-                    retryAfter: limit.waitTime ?? 5,
+                    retryAfter: waitTime,
                 };
             }
 
@@ -113,11 +122,18 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
                     return { status: "aborted" };
                 }
 
-                showError(
-                    error instanceof Error && error.message === "RATE_LIMIT"
-                        ? "Too many requests"
-                        : "Network error"
-                );
+                if (error instanceof Error && error.message === "RATE_LIMIT") {
+                    if (retryCount < 1) { 
+                        const backoffTime = 3000; 
+
+                        await new Promise(resolve => setTimeout(resolve, backoffTime));
+                        return executeRequest(requestFn, retryCount + 1);
+                    }
+                    
+                    showError("Rate limited - please wait a moment", 3000);
+                } else {
+                    showError("Network error");
+                }
 
                 return { status: "error" };
             } finally {
@@ -130,13 +146,18 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
 
 
     const fetchMarketData = useCallback(async (force = false) => {
-        const isFresh = lastUpdated && (Date.now() - lastUpdated < CACHE_CONFIG.MARKET_DATA_TTL);
+        const now = Date.now();
+        const isFresh = lastUpdated && (now - lastUpdated < CACHE_CONFIG.MARKET_DATA_TTL);
         const isSamePage = page === lastPageRef.current;
 
-        if (isFresh && !force && isSamePage) {
-            console.log("Using cache for page:", page);
+        if (!force && lastAttemptRef.current && (now - lastAttemptRef.current < 3000)) {
             return;
         }
+
+        if (isFresh && !force && isSamePage) {
+            return;
+        }
+
 
         await executeRequest(async () => {
             const params = {
@@ -178,8 +199,16 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
 
     const fetchExtraCoinsByIds = useCallback(
         async (ids: string[]): Promise<Coin[]> => {
+            if (ids.length === 0) return [];
+            
+            const requestKey = ids.sort().join(',');
+            
+            const pending = pendingRequests.current.get(requestKey);
+            if (pending) {
+                return pending;
+            }
 
-            const result = await executeRequest<Coin[]>(async () => {
+            const requestPromise = executeRequest<Coin[]>(async () => {
                 const data = await fetchCoinGecko(
                     API_CONFIG.ENDPOINT,
                     { vs_currency: MARKET_CONFIG.DEFAULT_CURRENCY, ids: ids.join(",") },
@@ -187,76 +216,61 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
 
                 updateCoinsState(data);
                 return data as Coin[];
+            }).then(result => {
+                pendingRequests.current.delete(requestKey);
+                
+                if (result.status === "success") {
+                    return result.data;
+                }
+                return [];
             });
-
-            if (result.status === "success") {
-                return result.data;
-            }
-
-            return [];
+            pendingRequests.current.set(requestKey, requestPromise);
+            
+            return requestPromise;
         },
         [executeRequest, updateCoinsState]
     );
 
-    const fetchSearchIndex = useCallback(async () => {
-        setIsSearchIndexLoading(true);
-
-        try {
-            const url = new URL(API_CONFIG.BASE_URL, window.location.origin);
-            url.searchParams.append('path', API_CONFIG.ENDPOINT);
-            url.searchParams.append('vs_currency', MARKET_CONFIG.DEFAULT_CURRENCY);
-            url.searchParams.append('per_page', '250');
-            url.searchParams.append('order', 'market_cap_desc');
-
-            const res = await window.fetch(url.toString());
-
-            if (!res.ok) throw new Error(`Search index status: ${res.status}`);
-
-            const data = await res.json();
-            setSearchIndex(data);
-        } catch (err) {
-            console.error("[SearchIndex Silent Fetch Error]:", err);
-            showError("Search temporarily unavailable", 3000);
-        } finally {
-            setIsSearchIndexLoading(false);
-        }
-    }, [showError]);
-
-
-
     const ensureCoinsLoaded = useCallback(async (ids: string[]) => {
+        if (!ids || ids.length === 0) return;
 
-        if (!ids) return;
-
-        const missingCoins = ids.filter(coin => {
-            const inMain = coinsRef.current.hasOwnProperty(coin);
-            const failed = failedIds.has(coin);
-
-            return !inMain && !failed;
+        const coinsToLoad = ids.filter(id => {
+            const exists = coinsRef.current.hasOwnProperty(id);
+            const failed = failedIds.has(id);
+            const loading = loadingCoins.current.has(id);
+            return !exists && !failed && !loading;
         });
 
-        if (missingCoins.length === 0) return
+        if (coinsToLoad.length === 0) return;
 
+        coinsToLoad.forEach(id => loadingCoins.current.add(id));
 
-        const result = await fetchExtraCoinsByIds(missingCoins);
-        const returnedIds = new Set(result.map(c => c.id));
+        try {
+            const result = await fetchExtraCoinsByIds(coinsToLoad);
+            const returnedIds = new Set(result.map(c => c.id));
 
-        const failed = missingCoins
-            .map(a => a)
-            .filter(id => !returnedIds.has(id));
+            const failed = coinsToLoad.filter(id => !returnedIds.has(id));
 
-        if (failed.length > 0) {
-            setFailedIds(prev => {
-                const next = new Set(prev);
-                failed.forEach(id => next.add(id));
-                return next;
-            });
+            if (failed.length > 0) {
+                setFailedIds(prev => {
+                    const next = new Set(prev);
+                    failed.forEach(id => next.add(id));
+                    return next;
+                });
+            }
+        } finally {
+            coinsToLoad.forEach(id => loadingCoins.current.delete(id));
         }
 
     }, [failedIds, fetchExtraCoinsByIds])
 
 
     const resetApp = useCallback(() => {
+        
+        const hasData = marketListRef.current.length > 0;
+        if (hasData) {
+            return;
+        }
 
         abortRef.current?.abort();
         const controller = new AbortController();
@@ -266,18 +280,20 @@ export default function CryptoProvider({ children }: { children: ReactNode }) {
         setMarketList([])
         setPage(1)
         setError(null)
+
+        pendingRequests.current.clear();
+        loadingCoins.current.clear();
     }, [])
 
     const value: ICryptoContext = {
         coins,
-        searchIndex,
         isLoading,
         error,
         marketList,
         page,
-        isSearchIndexLoading,
         setPage,
         resetApp,
+        lastAttempt: lastAttemptRef.current,
         lastUpdated,
         executeRequest,
         refreshData: fetchMarketData,

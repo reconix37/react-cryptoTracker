@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useCrypto } from "@/providers/CryptoProvider";
 import type { Coin } from "@/types/Coin";
 import { usePortfolioData } from "@/providers/PortfolioProvider";
@@ -14,22 +14,48 @@ export function useMarkets() {
 
     const { isLoading, error, coins, marketList, page, setPage, refreshData, resetApp, ensureCoinsLoaded } = useCrypto();
     const { watchlist, toggleWatchlist } = usePortfolioData()
-    const {isAuthenticated} = useAuth()
+    const { isAuthenticated } = useAuth()
+
+    const hasLoadedRef = useRef(false);
 
     useEffect(() => {
         document.title = "Markets | CryptoTracker";
     }, []);
 
     useEffect(() => {
+        const currentLength = marketList.length;
+        
+        if (currentLength >= 50) {
+            hasLoadedRef.current = true;
+            return;
+        }
+        
+        if (!hasLoadedRef.current) {
+            
+            const timer = setTimeout(() => {
+                if (marketList.length < 50) {
+                    refreshData(true); 
+                }
+                hasLoadedRef.current = true;
+            }, 100);
+
+            return () => clearTimeout(timer);
+        }
+        
+    }, [marketList.length]);
+
+    useEffect(() => {
+        if (page > 1) {
+            refreshData();
+        }
+    }, [page]);
+
+    useEffect(() => {
         if (filter !== "watchlist") return;
         if (watchlist.length === 0) return;
 
         ensureCoinsLoaded(watchlist);
-    }, [filter, watchlist]);
-
-    useEffect(() => {
-        refreshData();
-    }, [page]);
+    }, [filter, watchlist.length]);
 
     const finalDisplayCoins = useMemo(() => {
         const baseCoins: Coin[] =
@@ -41,16 +67,20 @@ export function useMarkets() {
 
         const normalizedSearch = search.toLowerCase();
 
-        return baseCoins.filter((coin) =>
+        const filtered = baseCoins.filter((coin) =>
             coin.name.toLowerCase().includes(normalizedSearch) ||
             coin.symbol.toLowerCase().includes(normalizedSearch)
         );
+
+        return filtered;
 
     }, [marketList, coins, filter, watchlist, search])
 
 
     const handleLoadMore = () => {
-        if (isLoading || isOnCooldown) return;
+        if (isLoading || isOnCooldown) {
+            return;
+        }
         setPage((prev) => prev + 1);
         startCooldown();
     };
@@ -58,7 +88,13 @@ export function useMarkets() {
     const handleReset = () => {
         setSearch("")
         setFilter("all")
-        resetApp()
+        hasLoadedRef.current = false;
+        setPage(1);
+
+        setTimeout(() => {
+            refreshData(true);
+            hasLoadedRef.current = true;
+        }, 100);
     }
 
     const isEmpty = finalDisplayCoins.length === 0 && !isLoading;

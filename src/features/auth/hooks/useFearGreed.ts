@@ -54,7 +54,6 @@ export function useFearGreed() {
     const now = Date.now();
 
     if (!force && now - lastFetched.current < 86400000) {
-      console.log("Too early for update, skipping...");
       return;
     }
     setError(null)

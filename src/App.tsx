@@ -15,10 +15,10 @@ import NotFound from './pages/NotFound';
 
 function App() {
   return (
-    <AuthProvider>
-      <CryptoProvider>
-        <PortfolioProvider>
-          <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
+        <CryptoProvider>
+          <PortfolioProvider>
             <Toaster position="top-center" richColors closeButton />
             <NavBar />
             <Routes>
@@ -31,10 +31,10 @@ function App() {
               </Route>
               <Route path='*' element={<NotFound />}/>
             </Routes>
-          </BrowserRouter>
-        </PortfolioProvider>
-      </CryptoProvider>
-    </AuthProvider>
+          </PortfolioProvider>
+        </CryptoProvider>
+      </AuthProvider>
+    </BrowserRouter>
   )
 }
 export default App

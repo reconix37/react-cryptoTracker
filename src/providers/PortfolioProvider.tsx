@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, useRef } from "react";
 import type { PortfolioContext as IPortfolioContext } from "@/types/PortfolioContext";
 import { useAuth } from "./AuthProvider";
 import type { PortfolioAsset } from "@/types/PortfolioAsset";
@@ -14,11 +14,14 @@ const PortfolioContext = createContext<IPortfolioContext | undefined>(undefined)
 export default function PortfolioProvider({ children }: { children: React.ReactNode }) {
 
     const { user, isAuthenticated } = useAuth();
-    const { coins } = useCrypto();
+    const { coins, ensureCoinsLoaded, } = useCrypto();
     const [assets, setAssets] = useState<PortfolioAsset[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [transactions, setTransactions] = useState<AssetsTransactions[]>([]);
     const [watchlist, setWatchlist] = useState<string[]>([])
+
+    const loadingAssetsRef = useRef<Set<string>>(new Set());
+    const lastSyncRef = useRef<number>(0);
 
     const isPriceLoading = assets.length > 0 && Object.keys(coins).length === 0;
 
@@ -63,6 +66,46 @@ export default function PortfolioProvider({ children }: { children: React.ReactN
 
         return () => unsubscribe();
     }, [user?.id, isAuthenticated]);
+
+    const assetIdsString = useMemo(() =>
+        assets.map(a => a.id).sort().join(','),
+        [assets]
+    );
+
+    useEffect(() => {
+        if (!isAuthenticated || !user || !assetIdsString) return;
+
+        const syncData = async () => {
+            const now = Date.now();
+
+            if (now - lastSyncRef.current < 5000) {
+                return;
+            }
+
+            lastSyncRef.current = now;
+
+            const idsArray = assetIdsString.split(',');
+
+            const missingIds = idsArray.filter(id => {
+                const notInCoins = !coins[id];
+                const notCurrentlyLoading = !loadingAssetsRef.current.has(id);
+                return notInCoins && notCurrentlyLoading;
+            });
+
+            if (missingIds.length > 0) {
+                missingIds.forEach(id => loadingAssetsRef.current.add(id));
+
+                try {
+                    await ensureCoinsLoaded(missingIds);
+                } finally {
+                    missingIds.forEach(id => loadingAssetsRef.current.delete(id));
+                }
+            }
+        };
+
+        syncData();
+
+    }, [isAuthenticated, user?.id, assetIdsString]);
 
 
     const enrichedAssets = useMemo(() => {
@@ -170,19 +213,19 @@ export default function PortfolioProvider({ children }: { children: React.ReactN
             asset => asset.profitValue < 0
         );
 
-        const bestPerformer =
-            profitableAssets.length > 0
-                ? profitableAssets.reduce((best, asset) =>
-                    asset.profitValue > best.profitValue ? asset : best
-                )
-                : null;
+        const bestPerformer = profitableAssets.length > 0
+            ? profitableAssets.reduce((best, asset) =>
+                asset.profitValue > best.profitValue ? asset : best,
+                profitableAssets[0]
+            )
+            : null;
 
-        const worstPerformer =
-            losingAssets.length > 0
-                ? losingAssets.reduce((worst, asset) =>
-                    asset.profitValue < worst.profitValue ? asset : worst
-                )
-                : null;
+        const worstPerformer = losingAssets.length > 0
+            ? losingAssets.reduce((worst, asset) =>
+                asset.profitValue < worst.profitValue ? asset : worst,
+                losingAssets[0]
+            )
+            : null;
 
 
         return {
@@ -199,7 +242,7 @@ export default function PortfolioProvider({ children }: { children: React.ReactN
             isProfit: totalProfitValue >= 0,
             isDailyProfit: totalChange >= 0,
         };
-    }, [enrichedAssets, totalBalance, allocation]);
+    }, [enrichedAssets, totalBalance, allocation, profitableAssetsCount]);
 
     const share = useMemo(() => {
         const result: Record<string, number> = {};
@@ -245,7 +288,6 @@ export default function PortfolioProvider({ children }: { children: React.ReactN
             toast.success(`Added ${newAsset.id}`);
 
         } catch (e) {
-            console.error(e);
             toast.error("Failed to add asset. Please try again.");
         }
     };
@@ -279,7 +321,6 @@ export default function PortfolioProvider({ children }: { children: React.ReactN
                 setAssets(updatedAssets);
                 toast.success(`Sold and removed ${id.toUpperCase()}`);
             } catch (e) {
-                console.error(e);
                 toast.error("Failed to remove asset. Please try again.");
                 return;
             }
@@ -310,6 +351,7 @@ export default function PortfolioProvider({ children }: { children: React.ReactN
             setWatchlist(previousWatchlist);
         }
     }
+
 
 
     const value = {
