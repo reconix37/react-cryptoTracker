@@ -1,7 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { API_CONFIG, CACHE_CONFIG } from "../src/configs/constants";
 
-const cache = new Map<string, { data: Date; timestamp: number }>();
+const CACHE_DURATION = 90 * 1000; 
+const RATE_LIMIT_WINDOW = 60 * 1000; 
+const MAX_REQUESTS_PER_IP = 50;
+
+const cache = new Map<string, { data: any; timestamp: number }>();
 const requestLog = new Map<string, number[]>();
 
 function getRateLimitKey(req: VercelRequest): string {
@@ -16,9 +19,9 @@ function isRateLimited(key: string): boolean {
     const now = Date.now();
     const requests = requestLog.get(key) || [];
 
-    const recentRequests = requests.filter(ts => now - ts < API_CONFIG.RATE_LIMIT_WINDOW);
+    const recentRequests = requests.filter(ts => now - ts < RATE_LIMIT_WINDOW);
 
-    if (recentRequests.length >= API_CONFIG.MAX_REQUESTS_PER_IP) {
+    if (recentRequests.length >= MAX_REQUESTS_PER_IP) {
         return true;
     }
 
@@ -28,10 +31,19 @@ function isRateLimited(key: string): boolean {
     return false;
 }
 
-export default async function cryptoProxyHandler(
+export default async function handler(
     req: VercelRequest,
     res: VercelResponse
 ) {
+
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept');
+
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
 
     const rateLimitKey = getRateLimitKey(req);
     if (isRateLimited(rateLimitKey)) {
@@ -62,7 +74,7 @@ export default async function cryptoProxyHandler(
     const now = Date.now();
 
     const cached = cache.get(cacheKey);
-    if (cached && (now - cached.timestamp < CACHE_CONFIG.CACHE_DURATION)) {
+    if (cached && (now - cached.timestamp < CACHE_DURATION)) {
         return res.status(200).json(cached.data);
     }
 
@@ -74,21 +86,28 @@ export default async function cryptoProxyHandler(
             },
         });
 
+        if (!response.ok) {
+            return res.status(response.status).json({ 
+                error: `CoinGecko API error: ${response.statusText}` 
+            });
+        }
+
         const data = await response.json();
 
-        if (response.ok) {
-            cache.set(cacheKey, { data, timestamp: now });
+        cache.set(cacheKey, { data, timestamp: now });
 
-            if (cache.size > 100) {
-                const oldestKey = cache.keys().next().value;
-                if (oldestKey) {
-                    cache.delete(oldestKey);
-                }
+        if (cache.size > 100) {
+            const oldestKey = cache.keys().next().value;
+            if (oldestKey) {
+                cache.delete(oldestKey);
             }
         }
 
-        return res.status(response.status).json(data);
+        return res.status(200).json(data);
     } catch (err) {
-        return res.status(500).json({ error: 'Proxy failed to reach CoinGecko' });
+        return res.status(500).json({ 
+            error: 'Proxy failed to reach CoinGecko',
+            details: err instanceof Error ? err.message : 'Unknown error'
+        });
     }
 }
