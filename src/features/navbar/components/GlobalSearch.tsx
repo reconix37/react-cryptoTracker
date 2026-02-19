@@ -9,26 +9,34 @@ import { formatCurrency } from "@/utils/formatCurrency"
 import { useDebounce } from "@/globalHooks/useDebounce"
 import { cn } from "@/lib/utils"
 
-export default function GlobalSearch() {
-    const [open, setOpen] = useState(false)
-    const [query, setQuery] = useState("")
+interface GlobalSearchProps {
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
+}
 
-    const debouncedQuery = useDebounce(query, 300)
+export default function GlobalSearch({ open: controlledOpen, onOpenChange }: GlobalSearchProps) {
+    const [internalOpen, setInternalOpen] = useState(false);
+    const [query, setQuery] = useState("");
 
-    const { coins, marketList, isLoading } = useCrypto()
-    const navigate = useNavigate()
+    const debouncedQuery = useDebounce(query, 300);
+
+    const { coins, marketList, isLoading } = useCrypto();
+    const navigate = useNavigate();
+
+    const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
+    const setOpen = onOpenChange || setInternalOpen;
 
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
             if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-                e.preventDefault()
-                setOpen((prev) => !prev)
+                e.preventDefault();
+                setOpen(!isOpen);
             }
-        }
+        };
 
-        window.addEventListener("keydown", handler)
-        return () => window.removeEventListener("keydown", handler)
-    }, [])
+        window.addEventListener("keydown", handler);
+        return () => window.removeEventListener("keydown", handler);
+    }, [setOpen, isOpen]);
 
     const searchableCoins = useMemo(() => {
         const coinsArray = Object.values(coins) as Coin[];
@@ -55,10 +63,10 @@ export default function GlobalSearch() {
     }, [searchableCoins, debouncedQuery, query]);
 
     const handleSelect = (coin: Coin) => {
-        setOpen(false)
-        setQuery("")
-        navigate(`/coin/${coin.id}`)
-    }
+        setOpen(false);
+        setQuery("");
+        navigate(`/coin/${coin.id}`);
+    };
 
     const isNotFound = !isLoading && query !== "" && debouncedQuery === query && results.length === 0;
     const isSearching = isLoading && searchableCoins.length === 0;
@@ -79,7 +87,6 @@ export default function GlobalSearch() {
                     ⌘ K
                 </kbd>
             </Button>
-
             <Button
                 variant="ghost"
                 size="icon"
@@ -88,7 +95,7 @@ export default function GlobalSearch() {
             >
                 <Search className="h-5 w-5" />
             </Button>
-            <CommandDialog open={open} onOpenChange={setOpen} >
+            <CommandDialog open={isOpen} onOpenChange={setOpen}>
                 <CommandInput
                     placeholder="Search coins…"
                     value={query}
@@ -138,5 +145,5 @@ export default function GlobalSearch() {
                 </CommandList>
             </CommandDialog>
         </div>
-    )
+    );
 }

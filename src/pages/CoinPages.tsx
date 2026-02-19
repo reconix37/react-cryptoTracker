@@ -96,7 +96,7 @@ export default function CoinPages() {
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
                                     <div className="bg-secondary/50 p-4 rounded-xl border border-border/50 relative">
-                                        <p className="text-muted-foreground text-sm font-medium mb-1 flex justify-between">
+                                        <p className="text-muted-foreground text-sm font-medium mb-1">
                                             Price
                                             {error === "Network error" && (
                                                 <span className="text-[10px] text-destructive animate-pulse">
