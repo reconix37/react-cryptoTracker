@@ -8,10 +8,11 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { useNavigate } from "react-router-dom";
-import { Star } from "lucide-react";
+import { Star, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Coin } from "@/types/Coin";
 import { MarketTableSkeleton } from "./CoinTableSkeleton";
+import type { SortDirection, SortKey } from "@/types/SortConfig";
 
 interface CoinTableProps {
     coins: Coin[];
@@ -20,6 +21,8 @@ interface CoinTableProps {
     isLoading: boolean;
     isAuthenticated?: boolean;
     renderEmptyState?: () => React.ReactNode;
+    sortConfig?: { key: SortKey; direction: SortDirection };
+    onSort?: (key: SortKey) => void;
 }
 
 export default function CoinTable({ 
@@ -28,7 +31,9 @@ export default function CoinTable({
     onToggleWatchlist, 
     isLoading, 
     renderEmptyState, 
-    isAuthenticated 
+    isAuthenticated,
+    sortConfig,
+    onSort
 }: CoinTableProps) {
 
     const navigate = useNavigate();
@@ -37,17 +42,72 @@ export default function CoinTable({
         return <MarketTableSkeleton rows={12} />;
     }
 
+    const getSortIcon = (columnKey: SortKey) => {
+        if (sortConfig?.key !== columnKey) {
+            return <ArrowUpDown className="w-3 h-3 opacity-30" />;
+        }
+        return sortConfig.direction === 'asc' 
+            ? <ArrowUp className="w-3 h-3 text-blue-600" />
+            : <ArrowDown className="w-3 h-3 text-blue-600" />;
+    };
+
     return (
         <div className="w-full">
             <Table className="hidden sm:table w-full border border-border rounded-xl overflow-hidden">
                 <TableHeader className="bg-secondary/50">
                     <TableRow>
                         {isAuthenticated && <TableHead className="w-12"></TableHead>}
-                        <TableHead>Name</TableHead>
-                        <TableHead>Price</TableHead>
-                        <TableHead>24h Change</TableHead>
-                        <TableHead className="text-right hidden md:table-cell">
-                            Market Cap
+
+                        <TableHead className="p-0">
+                            <div
+                                onClick={() => onSort?.('name')}
+                                className={cn(
+                                    "px-4 py-3 flex items-center gap-2 select-none",
+                                    onSort && "cursor-pointer hover:bg-secondary transition-colors active:bg-secondary/80"
+                                )}
+                            >
+                                Name
+                                {onSort && getSortIcon('name')}
+                            </div>
+                        </TableHead>
+
+                        <TableHead className="p-0">
+                            <div
+                                onClick={() => onSort?.('price')}
+                                className={cn(
+                                    "px-4 py-3 flex items-center gap-2 select-none",
+                                    onSort && "cursor-pointer hover:bg-secondary transition-colors active:bg-secondary/80"
+                                )}
+                            >
+                                Price
+                                {onSort && getSortIcon('price')}
+                            </div>
+                        </TableHead>
+
+                        <TableHead className="p-0">
+                            <div
+                                onClick={() => onSort?.('change')}
+                                className={cn(
+                                    "px-4 py-3 flex items-center gap-2 select-none",
+                                    onSort && "cursor-pointer hover:bg-secondary transition-colors active:bg-secondary/80"
+                                )}
+                            >
+                                24h Change
+                                {onSort && getSortIcon('change')}
+                            </div>
+                        </TableHead>
+
+                        <TableHead className="p-0 hidden md:table-cell">
+                            <div
+                                onClick={() => onSort?.('marketCap')}
+                                className={cn(
+                                    "px-4 py-3 flex items-center justify-end gap-2 select-none",
+                                    onSort && "cursor-pointer hover:bg-secondary transition-colors active:bg-secondary/80"
+                                )}
+                            >
+                                Market Cap
+                                {onSort && getSortIcon('marketCap')}
+                            </div>
                         </TableHead>
                     </TableRow>
                 </TableHeader>
@@ -108,7 +168,7 @@ export default function CoinTable({
                                             : "text-red-500"
                                     )}
                                 >
-                                    <span className="mr-1">{coin.price_change_percentage_24h >= 0 ? "▲" : "▼"}</span>
+                                    {coin.price_change_percentage_24h >= 0 ? "▲" : "▼"}
                                     {Math.abs(coin.price_change_percentage_24h).toFixed(2)}%
                                 </TableCell>
 
@@ -185,7 +245,7 @@ export default function CoinTable({
                                                 : "text-red-500"
                                         )}
                                     >
-                                        <span className="mr-1">{coin.price_change_percentage_24h >= 0 ? "▲" : "▼"}</span>
+                                        {coin.price_change_percentage_24h >= 0 ? "▲" : "▼"}
                                         {Math.abs(coin.price_change_percentage_24h).toFixed(2)}%
                                     </p>
                                 </div>

@@ -19,6 +19,7 @@ function Markets() {
     isLoading,
     isOnCooldown, cooldown,
     finalDisplayCoins,
+    sortConfig, requestSort,
     handleLoadMore, toggleWatchlist, handleReset,
   } = useMarkets();
 
@@ -82,6 +83,8 @@ function Markets() {
           isLoading={isLoading}
           onToggleWatchlist={toggleWatchlist}
           isAuthenticated={isAuthenticated}
+          sortConfig={sortConfig}
+          onSort={requestSort}
           renderEmptyState={() => (
             <div className="py-20 text-center text-muted-foreground">
               {search ? `No results for "${search}"` : "Nothing to show"}
