@@ -37,4 +37,9 @@ export interface PortfolioContext {
 
     deleteAsset: (id: string) => void;
     toggleWatchlist: (coinId: string) => void;
+    deleteTransaction: (txId: string) => void;
+
+    loadMoreTransactions: () => Promise<void>;
+    transactionsLoading: boolean;
+    hasMoreTransactions: boolean;
 }

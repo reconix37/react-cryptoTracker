@@ -26,3 +26,7 @@ export const STORAGE_KEYS = {
   USER: "auth_user",
   USERS_LIST: "registered_users"
 } as const
+
+export const TRANSACTIONS_CONFIG = {
+  PAGE_SIZE: 20,
+} as const

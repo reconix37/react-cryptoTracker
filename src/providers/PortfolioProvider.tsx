@@ -2,12 +2,14 @@ import { createContext, useContext, useEffect, useMemo, useState, useRef } from 
 import type { PortfolioContext as IPortfolioContext } from "@/types/PortfolioContext";
 import { useAuth } from "./AuthProvider";
 import type { PortfolioAsset } from "@/types/PortfolioAsset";
-import { arrayRemove, arrayUnion, collection, doc, onSnapshot, orderBy, query, Timestamp, updateDoc, where, writeBatch } from "firebase/firestore";
+import { arrayRemove, arrayUnion, collection, doc, onSnapshot, orderBy, query, runTransaction, Timestamp, updateDoc, where, writeBatch, limit, startAfter, getDocs} from "firebase/firestore";
 import { db } from "@/services/firebase";
+import type { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
 import { useCrypto } from "./CryptoProvider";
 import { toast } from "sonner";
 import type { AssetsTransactions } from "@/types/TransactoionsAsset";
 import type { AllocationItem } from "@/types/AllcoationItem";
+import { TRANSACTIONS_CONFIG } from "@/configs/constants";
 
 const PortfolioContext = createContext<IPortfolioContext | undefined>(undefined);
 
@@ -18,6 +20,9 @@ export default function PortfolioProvider({ children }: { children: React.ReactN
     const [assets, setAssets] = useState<PortfolioAsset[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [transactions, setTransactions] = useState<AssetsTransactions[]>([]);
+    const [transactionsLastDoc, setTransactionsLastDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+    const [transactionsLoading, setTransactionsLoading] = useState(false);
+    const [hasMoreTransactions, setHasMoreTransactions] = useState(true);
     const [watchlist, setWatchlist] = useState<string[]>([])
 
     const loadingAssetsRef = useRef<Set<string>>(new Set());
@@ -48,9 +53,16 @@ export default function PortfolioProvider({ children }: { children: React.ReactN
     useEffect(() => {
         if (!isAuthenticated || !user) return;
 
-        const q = query(collection(db, "transactions"), where("userId", "==", user.id), orderBy("timestamp", "desc"));
+        const q = query(collection(db, "transactions"), where("userId", "==", user.id), orderBy("timestamp", "desc"), limit(TRANSACTIONS_CONFIG.PAGE_SIZE));
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
+            if (snapshot.empty) {
+                setTransactions([]);
+                setHasMoreTransactions(false);
+                setIsLoading(false);
+                return;
+            }
+
             const txs = snapshot.docs.map(doc => ({
                 id: doc.id,
                 userId: doc.data().userId,
@@ -60,12 +72,58 @@ export default function PortfolioProvider({ children }: { children: React.ReactN
                 price: doc.data().price || 0,
                 timestamp: doc.data().timestamp.toDate(),
             }));
+
             setTransactions(txs);
+            setTransactionsLastDoc(snapshot.docs[snapshot.docs.length - 1]);
+            setHasMoreTransactions(snapshot.docs.length === TRANSACTIONS_CONFIG.PAGE_SIZE);
             setIsLoading(false);
         });
 
         return () => unsubscribe();
     }, [user?.id, isAuthenticated]);
+
+    const loadMoreTransactions = async () => {
+        if (!user || !transactionsLastDoc || transactionsLoading || !hasMoreTransactions) return;
+
+        setTransactionsLoading(true);
+
+        try {
+            const q = query(
+                collection(db, "transactions"),
+                where("userId", "==", user.id),
+                orderBy("timestamp", "desc"),
+                startAfter(transactionsLastDoc),
+                limit(TRANSACTIONS_CONFIG.PAGE_SIZE)
+            );
+
+            const snapshot = await getDocs(q);
+
+            if (snapshot.empty) {
+                setHasMoreTransactions(false);
+                return;
+            }
+
+            const newTxs = snapshot.docs.map(doc => ({
+                id: doc.id,
+                userId: doc.data().userId,
+                coinId: doc.data().coinId || "",
+                type: doc.data().type || "buy",
+                amount: doc.data().amount || 0,
+                price: doc.data().price || 0,
+                timestamp: doc.data().timestamp.toDate(),
+            }));
+
+            setTransactions(prev => [...prev, ...newTxs]);
+            setTransactionsLastDoc(snapshot.docs[snapshot.docs.length - 1]);
+            setHasMoreTransactions(snapshot.docs.length === TRANSACTIONS_CONFIG.PAGE_SIZE);
+
+        } catch (error) {
+            console.error("Error loading more transactions:", error);
+            toast.error("Failed to load more transactions");
+        } finally {
+            setTransactionsLoading(false);
+        }
+    };
 
     const assetIdsString = useMemo(() =>
         assets.map(a => a.id).sort().join(','),
@@ -352,6 +410,174 @@ export default function PortfolioProvider({ children }: { children: React.ReactN
         }
     }
 
+    const deleteTransaction = async (txId: string) => {
+        if (!user) return;
+
+        const txToDelete = transactions.find(tx => tx.id === txId);
+        if (!txToDelete) {
+            toast.error("Transaction not found");
+            return;
+        }
+
+        const coinId = txToDelete.coinId;
+        const isSellTx = txToDelete.type === 'sell';
+
+
+        const toastId = toast.loading("Removing transaction...");
+
+        try {
+
+            await runTransaction(db, async (transaction) => {
+
+                const userRef = doc(db, "users", user.id);
+                const userDoc = await transaction.get(userRef);
+
+                if (!userDoc.exists()) {
+                    throw new Error("User document not found");
+                }
+
+                const currentAssets = (userDoc.data().assets || []) as PortfolioAsset[];
+
+                const txQuery = query(
+                    collection(db, "transactions"),
+                    where("userId", "==", user.id),
+                    where("coinId", "==", coinId),
+                    orderBy("timestamp", "asc")
+                );
+
+                const txSnapshot = await getDocs(txQuery);
+                const allCoinTxs = txSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    type: doc.data().type as "buy" | "sell",
+                    amount: doc.data().amount,
+                    price: doc.data().price,
+                }));
+
+                const remainingTxs = allCoinTxs.filter(tx => tx.id !== txId);
+
+                if (isSellTx) {
+                    const { finalAmount, finalBuyPrice } = calculateFIFO(remainingTxs);
+
+                    const txRef = doc(db, "transactions", txId);
+                    transaction.delete(txRef);
+
+                    if (finalAmount <= 0) {
+                        const updatedAssets = currentAssets.filter(a => a.id !== coinId);
+                        transaction.update(userRef, { assets: updatedAssets });
+                    } else {
+                        const updatedAssets = currentAssets.map(a =>
+                            a.id === coinId
+                                ? { ...a, amount: finalAmount, buyPrice: finalBuyPrice }
+                                : a
+                        );
+                        transaction.update(userRef, { assets: updatedAssets });
+                    }
+
+                    return;
+                }
+
+                const validation = validateFIFO(remainingTxs);
+
+                if (!validation.valid) {
+                    throw new Error(
+                        `Cannot delete this purchase: It would create an invalid state where ` +
+                        `${validation.conflictingSell?.amount} ${coinId.toUpperCase()} was sold ` +
+                        `without sufficient prior purchases. Please delete the sell transaction first.`
+                    );
+                }
+                const { finalAmount, finalBuyPrice } = calculateFIFO(remainingTxs);
+
+                const txRef = doc(db, "transactions", txId);
+                transaction.delete(txRef);
+
+                if (finalAmount <= 0) {
+                    const updatedAssets = currentAssets.filter(a => a.id !== coinId);
+                    transaction.update(userRef, { assets: updatedAssets });
+                } else {
+                    const updatedAssets = currentAssets.map(a =>
+                        a.id === coinId
+                            ? { ...a, amount: finalAmount, buyPrice: finalBuyPrice }
+                            : a
+                    );
+                    transaction.update(userRef, { assets: updatedAssets });
+                }
+            });
+
+            toast.success("Transaction removed", { id: toastId });
+
+        } catch (error: any) {
+
+            if (error.message.includes("Cannot delete this purchase")) {
+                toast.error(error.message, {
+                    id: toastId,
+                    duration: 6000
+                });
+            } else {
+                toast.error("Failed to remove transaction. Please try again.", {
+                    id: toastId
+                });
+            }
+        }
+    };
+
+    function calculateFIFO(txs: Array<{ type: string; amount: number; price: number }>) {
+        let runningBalance = 0;
+        const purchases: Array<{ amount: number; price: number }> = [];
+
+        for (const tx of txs) {
+            if (tx.type === 'buy') {
+                runningBalance += tx.amount;
+                purchases.push({ amount: tx.amount, price: tx.price });
+            } else {
+                let sellAmount = tx.amount;
+                runningBalance -= sellAmount;
+
+                while (sellAmount > 0 && purchases.length > 0) {
+                    const oldest = purchases[0];
+
+                    if (oldest.amount <= sellAmount) {
+                        sellAmount -= oldest.amount;
+                        purchases.shift();
+                    } else {
+                        oldest.amount -= sellAmount;
+                        sellAmount = 0;
+                    }
+                }
+            }
+        }
+
+        const finalCostBasis = purchases.reduce(
+            (sum, p) => sum + p.amount * p.price,
+            0
+        );
+        const finalBuyPrice = runningBalance > 0 ? finalCostBasis / runningBalance : 0;
+
+        return {
+            finalAmount: runningBalance,
+            finalBuyPrice,
+        };
+    }
+
+    function validateFIFO(txs: Array<{ type: string; amount: number; price: number }>) {
+        let runningBalance = 0;
+
+        for (const tx of txs) {
+            if (tx.type === 'buy') {
+                runningBalance += tx.amount;
+            } else {
+                if (runningBalance < tx.amount) {
+                    return {
+                        valid: false,
+                        conflictingSell: tx,
+                    };
+                }
+                runningBalance -= tx.amount;
+            }
+        }
+
+        return { valid: true };
+    }
+
 
 
     const value = {
@@ -365,7 +591,11 @@ export default function PortfolioProvider({ children }: { children: React.ReactN
         watchlist,
         toggleWatchlist,
         addAsset,
-        deleteAsset
+        deleteAsset,
+        deleteTransaction,
+        loadMoreTransactions,
+        transactionsLoading,
+        hasMoreTransactions,
     }
 
     return <PortfolioContext.Provider value={value}>{children}</PortfolioContext.Provider>;
