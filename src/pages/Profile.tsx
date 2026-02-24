@@ -3,6 +3,7 @@ import AnalyticsCards from "@/features/portfolio/components/AnalyticsCards";
 import AssetsList from "@/features/portfolio/components/AssetsList";
 import PortfolioHeader from "@/features/portfolio/components/PortfolioHeader";
 import PortfolioOverview from "@/features/portfolio/components/PortfolioOverview";
+import PortfolioHistoryChart from "@/features/portfolio/components/PortfolioHistoryChart";
 
 export default function Profile() {
   const {
@@ -48,6 +49,8 @@ export default function Profile() {
         stats={stats}
         assets={assets}
       />
+
+      <PortfolioHistoryChart />
 
       <AssetsList
         searchQuery={searchQuery}

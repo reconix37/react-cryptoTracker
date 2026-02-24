@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, useRef } from 
 import type { PortfolioContext as IPortfolioContext } from "@/types/PortfolioContext";
 import { useAuth } from "./AuthProvider";
 import type { PortfolioAsset } from "@/types/PortfolioAsset";
-import { arrayRemove, arrayUnion, collection, doc, onSnapshot, orderBy, query, runTransaction, Timestamp, updateDoc, where, writeBatch, limit, startAfter, getDocs} from "firebase/firestore";
+import { arrayRemove, arrayUnion, collection, doc, onSnapshot, orderBy, query, runTransaction, Timestamp, updateDoc, where, writeBatch, limit, startAfter, getDocs, addDoc } from "firebase/firestore";
 import { db } from "@/services/firebase";
 import type { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
 import { useCrypto } from "./CryptoProvider";
@@ -27,6 +27,7 @@ export default function PortfolioProvider({ children }: { children: React.ReactN
 
     const loadingAssetsRef = useRef<Set<string>>(new Set());
     const lastSyncRef = useRef<number>(0);
+    const lastSnapshotDateRef = useRef<string | null>(null);
 
     const isPriceLoading = assets.length > 0 && Object.keys(coins).length === 0;
 
@@ -309,6 +310,46 @@ export default function PortfolioProvider({ children }: { children: React.ReactN
         });
         return result;
     }, [enrichedAssets, stats.totalBalance]);
+
+    useEffect(() => {
+        if (!isAuthenticated || !user) return;
+        if (isPriceLoading || enrichedAssets.length === 0) return;
+
+        const createDailySnapshot = async () => {
+            try {
+                const today = new Date();
+                today.setUTCHours(0, 0, 0, 0);
+                const todayString = today.toISOString().split('T')[0];
+
+                if (lastSnapshotDateRef.current === todayString) {
+                    return;
+                }
+
+                const q = query(
+                    collection(db, "portfolio_history"),
+                    where("userId", "==", user.id),
+                    where("timestamp", ">=", Timestamp.fromDate(today))
+                );
+
+                const snapshot = await getDocs(q);
+
+                if (snapshot.empty) {
+                    await addDoc(collection(db, "portfolio_history"), {
+                        userId: user.id,
+                        totalBalance: stats.totalBalance,
+                        timestamp: Timestamp.now(),
+                    });
+
+                    lastSnapshotDateRef.current = todayString;
+                }
+            } catch (error) {
+                console.error("Failed to create portfolio snapshot:", error);
+            }
+        };
+
+        createDailySnapshot();
+    }, [isAuthenticated, user?.id, stats.totalBalance, isPriceLoading, enrichedAssets.length]);
+
 
     const addAsset = async (newAsset: PortfolioAsset) => {
         if (!user) return;
