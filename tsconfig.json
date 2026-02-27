@@ -6,6 +6,7 @@
   ],
   "compilerOptions": {
     "strict": true,
+    "types": ["node", "vite-plugin-pwa/client"],
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {

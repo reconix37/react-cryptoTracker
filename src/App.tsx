@@ -12,14 +12,18 @@ import Auth from './pages/Auth';
 import PortfolioProvider from './providers/PortfolioProvider';
 import WatchList from './pages/Watchlist';
 import NotFound from './pages/NotFound';
+import PWAUpdateNotification from './globalComponents/PWAUpdateNotification';
+import PWAInstallPrompt from './globalComponents/PWAInstallPrompt';
 
 function App() {
-  return (
+  return (<>
     <BrowserRouter>
       <AuthProvider>
         <CryptoProvider>
           <PortfolioProvider>
             <Toaster position="top-center" richColors closeButton />
+            <PWAInstallPrompt />
+            <PWAUpdateNotification />
             <NavBar />
             <Routes>
               <Route path='/auth' element={<Auth />} />
@@ -29,12 +33,13 @@ function App() {
                 <Route path="/watchlist" element={<WatchList />} />
                 <Route path="/profile" element={<Profile />} />
               </Route>
-              <Route path='*' element={<NotFound />}/>
+              <Route path='*' element={<NotFound />} />
             </Routes>
           </PortfolioProvider>
         </CryptoProvider>
       </AuthProvider>
     </BrowserRouter>
+  </>
   )
 }
 export default App
